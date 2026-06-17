@@ -1,0 +1,61 @@
+import { prisma } from '../lib/prisma.js';
+import { cacheDelPattern, cacheGet, cacheSet } from '../lib/redis.js';
+import { AppError } from '../middleware/errorHandler.js';
+
+const FAVORITES_TTL = 300;
+
+export async function listFavorites(userId: string) {
+  const cacheKey = `user:${userId}:favorites`;
+  const cached = await cacheGet<unknown[]>(cacheKey);
+  if (cached) return cached;
+
+  const favorites = await prisma.favorite.findMany({
+    where: { userId },
+    include: {
+      restaurant: true,
+      list: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  await cacheSet(cacheKey, favorites, FAVORITES_TTL);
+  return favorites;
+}
+
+export async function addFavorite(userId: string, restaurantId: string, listId?: string) {
+  const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
+  if (!restaurant) throw new AppError('RESTAURANT_NOT_FOUND', 'Restaurant introuvable.', 404);
+
+  const favorite = await prisma.favorite.upsert({
+    where: { userId_restaurantId: { userId, restaurantId } },
+    create: { userId, restaurantId, listId },
+    update: { listId },
+    include: { restaurant: true },
+  });
+
+  await cacheDelPattern(`user:${userId}:favorites`);
+  return favorite;
+}
+
+export async function removeFavorite(userId: string, restaurantId: string) {
+  await prisma.favorite.deleteMany({ where: { userId, restaurantId } });
+  await cacheDelPattern(`user:${userId}:favorites`);
+}
+
+export async function listFavoriteLists(userId: string) {
+  return prisma.favoriteList.findMany({
+    where: { userId },
+    include: { _count: { select: { favorites: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function createFavoriteList(userId: string, name: string) {
+  return prisma.favoriteList.create({ data: { userId, name } });
+}
+
+export async function addToFavoriteList(userId: string, listId: string, restaurantId: string) {
+  const list = await prisma.favoriteList.findFirst({ where: { id: listId, userId } });
+  if (!list) throw new AppError('LIST_NOT_FOUND', 'Liste introuvable.', 404);
+  return addFavorite(userId, restaurantId, listId);
+}

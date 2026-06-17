@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  owner
+  admin
+}
+
+enum RestaurantStatus {
+  pending
+  published
+  rejected
+  suspended
+}
+
+enum ComplaintType {
+  poor_service
+  hygiene
+  wrong_info
+  fraud
+  closed_business
+}
+
+enum ComplaintStatus {
+  pending
+  under_review
+  resolved
+  rejected
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  fullName     String   @map("full_name")
+  role         UserRole @default(user)
+  googleId     String?  @unique @map("google_id")
+  isVerified   Boolean  @default(false) @map("is_verified")
+  isBanned     Boolean  @default(false) @map("is_banned")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurants Restaurant[] @relation("RestaurantOwner")
+  reviews     Review[]
+  complaints  Complaint[]
+  favorites   Favorite[]
+  favoriteLists FavoriteList[]
+
+  @@map("users")
+}
+
+model Restaurant {
+  id          String           @id @default(uuid())
+  ownerId     String?          @map("owner_id")
+  name        String
+  description String?
+  address     String
+  city        String
+  lat         Float
+  lng         Float
+  cuisineType String           @map("cuisine_type")
+  priceRange  Int              @map("price_range")
+  avgRating   Float            @default(0) @map("avg_rating")
+  reviewCount Int              @default(0) @map("review_count")
+  photos      String[]         @default([])
+  status      RestaurantStatus @default(pending)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  owner       User?       @relation("RestaurantOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  reviews     Review[]
+  complaints  Complaint[]
+  favorites   Favorite[]
+
+  @@index([city])
+  @@index([cuisineType])
+  @@index([status])
+  @@index([lat, lng])
+  @@map("restaurants")
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  restaurantId String   @map("restaurant_id")
+  rating       Int
+  content      String?
+  photos       String[] @default([])
+  ownerReply   String?  @map("owner_reply")
+  isFlagged    Boolean  @default(false) @map("is_flagged")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@index([restaurantId])
+  @@map("reviews")
+}
+
+model Complaint {
+  id           String          @id @default(uuid())
+  userId       String          @map("user_id")
+  restaurantId String          @map("restaurant_id")
+  type         ComplaintType
+  description  String
+  status       ComplaintStatus @default(pending)
+  adminNote    String?         @map("admin_note")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("complaints")
+}
+
+model FavoriteList {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  favorites Favorite[]
+
+  @@map("favorite_lists")
+}
+
+model Favorite {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  restaurantId String   @map("restaurant_id")
+  listId       String?  @map("list_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  list       FavoriteList? @relation(fields: [listId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, restaurantId])
+  @@index([userId])
+  @@map("favorites")
+}
