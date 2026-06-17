@@ -1,26 +1,89 @@
 # EatNext
 
-This repository uses **`main` for infrastructure only**: Docker services, minimal app shells, and the shared Prisma schema. Application features (routes, pages, services, seeds, and UI) live on **feature branches** (for example `setup/infra-local` or topic branches merged via PR).
+EatNext est une plateforme de restauration (monorepo) : API REST Node.js/Express avec Prisma, client web React (Vite + Tailwind), PostgreSQL et Redis pour le cache et les sessions.
 
-## What is on `main`
+## Structure du dépôt
 
-| Path | Purpose |
-|------|---------|
-| `docker-compose.yml` | PostgreSQL and Redis for local development |
-| `backend/` | Minimal Node/TypeScript entrypoint, Prisma schema, env template |
-| `frontend/` | Minimal Vite + React + Tailwind shell |
+- **`backend/`** — API REST (Express, Prisma, TypeScript)
+- **`frontend/`** — Application web (Vite, React, Tailwind)
+- **`docker-compose.yml`** — Services PostgreSQL et Redis (optionnel si Docker est disponible)
 
-## Branch workflow
+## Prérequis
 
-1. Branch from `main` for feature work.
-2. Implement API routes, services, pages, and seeds on that branch.
-3. Open a PR when ready; do not commit full application code directly to `main`.
+- **Node.js 22+**
+- **PostgreSQL 12**
+- **Redis**
+- **npm**
 
-## Quick start (infra)
+> **Note :** Si Docker n’est pas disponible sur votre machine, utilisez PostgreSQL et Redis installés localement (instructions ci-dessous).
 
-1. Copy `backend/.env.example` to `backend/.env` and adjust values.
-2. Start dependencies: `docker compose up -d`
-3. Backend shell: `cd backend && npm install && npm run dev`
-4. Frontend shell: `cd frontend && npm install && npm run dev`
+## PostgreSQL en mode utilisateur (`.pgdata`)
 
-Do not commit `.env`, `.pgdata/`, or `node_modules/`.
+Sans Docker, vous pouvez faire tourner PostgreSQL 12 avec un répertoire de données dans le projet :
+
+```bash
+export PG_BIN=/usr/lib/postgresql/12/bin
+export PGDATA="$PWD/.pgdata"
+
+# Une seule fois : initialiser le cluster
+"$PG_BIN/initdb" -D "$PGDATA" -U "$(whoami)" --encoding=UTF8 --locale=C
+
+# Démarrer le serveur (à refaire à chaque session)
+"$PG_BIN/pg_ctl" -D "$PGDATA" -l "$PGDATA/postgresql.log" start
+
+# Créer la base attendue par backend/.env.example
+"$PG_BIN/createdb" -h localhost eatnext 2>/dev/null || true
+# Pour l’utilisateur eatnext / mot de passe eatnext (voir DATABASE_URL) :
+# psql -h localhost -d postgres -c "CREATE USER eatnext WITH PASSWORD 'eatnext' CREATEDB;"
+# psql -h localhost -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE eatnext TO eatnext;"
+```
+
+Arrêter PostgreSQL :
+
+```bash
+"$PG_BIN/pg_ctl" -D "$PGDATA" stop
+```
+
+Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
+
+## Démarrage rapide
+
+1. **Variables d’environnement**
+
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
+
+   Adaptez `DATABASE_URL` et `REDIS_URL` si vos ports ou identifiants diffèrent.
+
+2. **Backend** (port **3000**)
+
+   ```bash
+   cd backend
+   npm install
+   npx prisma generate
+   npx prisma db push
+   npm run dev
+   ```
+
+3. **Frontend** (port **5173** par défaut avec Vite)
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+4. Ouvrir le client : [http://localhost:5173](http://localhost:5173) — l’API est sur [http://localhost:3000](http://localhost:3000).
+
+## Stratégie de branches
+
+- **`main`** — infrastructure uniquement (Docker, socle minimal backend/frontend, schéma Prisma partagé, documentation infra)
+- **`develop`** — branche d’intégration ; toutes les branches `feature/*` fusionnent ici
+- **`feature/*`** — une fonctionnalité par branche ; ouvrir une PR vers `develop`
+
+Les mises à jour infra vont sur `main` ; le code applicatif passe par `develop`. Pour une release, `develop` peut être fusionnée dans `main` (optionnel, selon la politique du projet).
+
+## Fichiers à ne pas committer
+
+Ne commitez pas : `.env`, `.pgdata/`, `node_modules/`, ni d’autres secrets ou artefacts locaux.
