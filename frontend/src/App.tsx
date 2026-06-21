@@ -1,10 +1,46 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { MainLayout } from './components/layout/MainLayout';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import HomePage from './pages/HomePage';
+import SearchPage from './pages/SearchPage';
+import RestaurantDetailPage from './pages/RestaurantDetailPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import FavoritesPage from './pages/FavoritesPage';
+import ProfilePage from './pages/ProfilePage';
+
+/**
+ * Routage principal de l'application EatNext.
+ * Les routes protégées (/favorites, /profile) exigent une session active.
+ */
 export default function App() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-gray-900">
-      <h1 className="text-2xl font-semibold">EatNext</h1>
-      <p className="mt-2 text-sm text-gray-600">
-        Frontend shell on <code className="rounded bg-gray-200 px-1">main</code> — build features on a branch.
-      </p>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route index element={<HomePage />} />
+          <Route path="search" element={<SearchPage />} />
+          <Route path="restaurants/:id" element={<RestaurantDetailPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route
+            path="favorites"
+            element={
+              <ProtectedRoute>
+                <FavoritesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
