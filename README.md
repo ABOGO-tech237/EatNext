@@ -46,35 +46,50 @@ Arrêter PostgreSQL :
 
 Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
 
-## Démarrage rapide
+## Démarrage rapide (API réelle + Docker)
 
-1. **Variables d’environnement**
+1. **PostgreSQL et Redis (Docker)**
 
    ```bash
-   cp backend/.env.example backend/.env
+   docker-compose up -d
    ```
 
-   Adaptez `DATABASE_URL` et `REDIS_URL` si vos ports ou identifiants diffèrent.
+   Connexion par défaut : `postgresql://eatnext:eatnext@localhost:5432/eatnext` (voir [`backend/.env.example`](backend/.env.example)).
 
 2. **Backend** (port **3000**)
 
    ```bash
+   cp backend/.env.example backend/.env
    cd backend
    npm install
    npx prisma generate
    npx prisma db push
+   npm run db:seed
    npm run dev
    ```
 
-3. **Frontend** (port **5173** par défaut avec Vite)
+   Documentation API : [http://localhost:3000/v1/docs](http://localhost:3000/v1/docs)
+
+3. **Frontend** (port **5173**)
 
    ```bash
+   cp frontend/.env.example frontend/.env
    cd frontend
    npm install
    npm run dev
    ```
 
-4. Ouvrir le client : [http://localhost:5173](http://localhost:5173) — l’API est sur [http://localhost:3000](http://localhost:3000).
+   Le frontend appelle l’API réelle (`VITE_USE_MOCK=false`). Pour une démo hors-ligne sans backend, définir `VITE_USE_MOCK=true` dans `frontend/.env`.
+
+4. Ouvrir [http://localhost:5173](http://localhost:5173) — l’API est sur [http://localhost:3000/v1](http://localhost:3000/v1).
+
+### Comptes de test (seed)
+
+| Email | Mot de passe | Rôle |
+|-------|--------------|------|
+| `marie@example.com` | `Password123!` | user |
+| `admin@eatnext.africa` | `Password123!` | admin |
+| `owner@eatnext.africa` | `Password123!` | owner |
 
 ## Stratégie de branches
 

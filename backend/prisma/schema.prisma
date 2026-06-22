@@ -20,6 +20,11 @@ enum RestaurantStatus {
   suspended
 }
 
+enum RestaurantSource {
+  USER_SUBMITTED
+  OSM_SYNC
+}
+
 enum ComplaintType {
   poor_service
   hygiene
@@ -57,22 +62,30 @@ model User {
 }
 
 model Restaurant {
-  id          String           @id @default(uuid())
-  ownerId     String?          @map("owner_id")
-  name        String
-  description String?
-  address     String
-  city        String
-  lat         Float
-  lng         Float
-  cuisineType String           @map("cuisine_type")
-  priceRange  Int              @map("price_range")
-  avgRating   Float            @default(0) @map("avg_rating")
-  reviewCount Int              @default(0) @map("review_count")
-  photos      String[]         @default([])
-  status      RestaurantStatus @default(pending)
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  id           String           @id @default(uuid())
+  ownerId      String?          @map("owner_id")
+  name         String
+  description  String?
+  address      String
+  city         String
+  lat          Float
+  lng          Float
+  cuisineType  String           @map("cuisine_type")
+  priceRange   Int              @map("price_range")
+  avgRating    Float            @default(0) @map("avg_rating")
+  reviewCount  Int              @default(0) @map("review_count")
+  photos       String[]         @default([])
+  status       RestaurantStatus @default(pending)
+  source       RestaurantSource @default(USER_SUBMITTED)
+  osmId        String?          @unique @map("osm_id")
+  osmType      String?          @map("osm_type")
+  osmTags      Json?            @map("osm_tags")
+  lastSyncedAt DateTime?        @map("last_synced_at")
+  openingHours String?          @map("opening_hours")
+  phone        String?
+  website      String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
 
   owner       User?       @relation("RestaurantOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   reviews     Review[]
@@ -83,6 +96,7 @@ model Restaurant {
   @@index([cuisineType])
   @@index([status])
   @@index([lat, lng])
+  @@index([source])
   @@map("restaurants")
 }
 
