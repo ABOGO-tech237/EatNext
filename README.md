@@ -91,6 +91,15 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
 | `admin@eatnext.africa` | `Password123!` | admin |
 | `owner@eatnext.africa` | `Password123!` | owner |
 
+## OpenStreetMap / Overpass (hybride)
+
+EatNext peut découvrir des restaurants via **Overpass API** et les **synchroniser en PostgreSQL** pour avis et favoris. Voir [docs/OSM.md](docs/OSM.md).
+
+Endpoints principaux :
+- `GET /v1/restaurants/osm/nearby?lat=&lng=&radius=&sync=`
+- `POST /v1/restaurants/osm/sync`
+- `GET /v1/restaurants/nearby?includeOsm=true`
+
 ## Stratégie de branches
 
 - **`main`** — infrastructure uniquement (Docker, socle minimal backend/frontend, schéma Prisma partagé, documentation infra)

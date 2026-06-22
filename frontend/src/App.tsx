@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import RestaurantDetailPage from './pages/RestaurantDetailPage';
+import OsmRestaurantPage from './pages/OsmRestaurantPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import FavoritesPage from './pages/FavoritesPage';
@@ -21,6 +22,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="restaurants/:id" element={<RestaurantDetailPage />} />
+          <Route path="osm/:osmType/:osmId" element={<OsmRestaurantPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route

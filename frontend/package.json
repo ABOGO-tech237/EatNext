@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@tanstack/react-query": "^5.62.8",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
@@ -32,6 +33,22 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
+=======
+    "axios": "^1.7.9",
+    "leaflet": "^1.9.4",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.1.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/leaflet": "^1.9.15",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+>>>>>>> origin/feature/osm-overpass
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",
