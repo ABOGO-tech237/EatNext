@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Badge } from '../ui/Badge';
 import { Rating } from '../ui/Rating';
 import { PriceRange } from '../ui/PriceRange';
-import { cn, formatDistance } from '../../lib/utils';
+import { cn, formatDistance, isOsmEphemeral, restaurantDetailPath } from '../../lib/utils';
 import type { Restaurant } from '../../types';
 
 interface RestaurantCardProps {
@@ -38,7 +38,7 @@ export function RestaurantCard({
       transition={{ duration: 0.25 }}
       className="group relative overflow-hidden rounded-2xl bg-white shadow-card transition-shadow hover:shadow-card-hover"
     >
-      <Link to={`/restaurants/${restaurant.id}`} className="block">
+      <Link to={restaurantDetailPath(restaurant)} className="block">
         <div className="relative aspect-[4/3] overflow-hidden bg-ink-100">
           <img
             src={photo}
@@ -50,6 +50,11 @@ export function RestaurantCard({
           <Badge variant="brand" className="absolute left-3 top-3 capitalize">
             {restaurant.cuisineType}
           </Badge>
+          {isOsmEphemeral(restaurant) && (
+            <Badge className="absolute left-3 top-11 bg-blue-600 text-white border-0">
+              OSM
+            </Badge>
+          )}
         </div>
 
         <div className={cn('p-4', compact && 'p-3')}>

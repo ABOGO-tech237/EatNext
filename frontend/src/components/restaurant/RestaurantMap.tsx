@@ -1,34 +1,33 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Restaurant } from '../../types';
+import { isOsmEphemeral, restaurantDetailPath } from '../../lib/utils';
 
-// Correction des icônes Leaflet par défaut (problème connu avec bundlers).
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+/** Marqueur circulaire coloré — bleu OSM dynamique, vert en base EatNext. */
+function createColoredIcon(color: string) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+}
 
-delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
+const OSM_ICON = createColoredIcon('#2563eb');
+const DB_ICON = createColoredIcon('#15803d');
 
 interface RestaurantMapProps {
   restaurants: Restaurant[];
-  /** Centre initial de la carte [lat, lng]. */
   center?: [number, number];
   zoom?: number;
-  /** Hauteur CSS du conteneur. */
   height?: string;
-  /** Identifiant du restaurant sélectionné (marker mis en avant). */
   selectedId?: string;
   onSelect?: (restaurant: Restaurant) => void;
 }
 
-/** Recentre la carte quand le centre change (ex. géolocalisation). */
 function MapRecenter({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
@@ -38,8 +37,8 @@ function MapRecenter({ center }: { center: [number, number] }) {
 }
 
 /**
- * Carte Leaflet affichant les restaurants sous forme de marqueurs.
- * Utilisée sur la page recherche (split view) et la fiche restaurant.
+ * Carte Leaflet — marqueurs bleus (OSM non sync) vs verts (PostgreSQL).
+ * Le frontend ne parle jamais à Overpass directement : données via l'API EatNext.
  */
 export function RestaurantMap({
   restaurants,
@@ -49,6 +48,8 @@ export function RestaurantMap({
   selectedId,
   onSelect,
 }: RestaurantMapProps) {
+  const icons = useMemo(() => ({ osm: OSM_ICON, db: DB_ICON }), []);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-ink-200" style={{ height }}>
       <MapContainer
@@ -63,24 +64,42 @@ export function RestaurantMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapRecenter center={center} />
-        {restaurants.map((r) => (
-          <Marker
-            key={r.id}
-            position={[r.lat, r.lng]}
-            eventHandlers={{
-              click: () => onSelect?.(r),
-            }}
-            opacity={selectedId && selectedId !== r.id ? 0.6 : 1}
-          >
-            <Popup>
-              <div className="min-w-[160px]">
-                <p className="font-semibold text-sm">{r.name}</p>
-                <p className="text-xs text-gray-600 capitalize">{r.cuisineType}</p>
-                <p className="text-xs text-gray-500 mt-1">{r.address}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {restaurants.map((r) => {
+          const ephemeral = isOsmEphemeral(r);
+          return (
+            <Marker
+              key={r.id}
+              position={[r.lat, r.lng]}
+              icon={ephemeral ? icons.osm : icons.db}
+              eventHandlers={{ click: () => onSelect?.(r) }}
+              opacity={selectedId && selectedId !== r.id ? 0.65 : 1}
+            >
+              <Popup>
+                <div className="min-w-[160px]">
+                  <p className="font-semibold text-sm">{r.name}</p>
+                  <p className="text-xs text-gray-600 capitalize">{r.cuisineType}</p>
+                  <p className="text-xs mt-1">
+                    <span
+                      className={
+                        ephemeral
+                          ? 'text-blue-600 font-medium'
+                          : 'text-green-700 font-medium'
+                      }
+                    >
+                      {ephemeral ? 'OpenStreetMap' : 'EatNext'}
+                    </span>
+                  </p>
+                  <Link
+                    to={restaurantDetailPath(r)}
+                    className="text-xs text-brand-600 mt-2 inline-block"
+                  >
+                    Voir la fiche →
+                  </Link>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );

@@ -22,3 +22,26 @@ export function formatDistance(meters?: number): string | null {
   if (meters < 1000) return `${Math.round(meters)} m`;
   return `${(meters / 1000).toFixed(1)} km`;
 }
+
+/** POI OSM non encore persisté en base (id synthétique osm-*). */
+export function isOsmEphemeral(restaurant: { id: string }): boolean {
+  return restaurant.id.startsWith('osm-');
+}
+
+/** Restaurant avec UUID EatNext en PostgreSQL. */
+export function isPersistedInDb(restaurant: { id: string }): boolean {
+  return !restaurant.id.startsWith('osm-');
+}
+
+/** Lien fiche : sync OSM via API si éphémère, sinon fiche locale. */
+export function restaurantDetailPath(restaurant: {
+  id: string;
+  osmType?: string | null;
+  osmId?: string | null;
+}): string {
+  if (isPersistedInDb(restaurant)) return `/restaurants/${restaurant.id}`;
+  if (restaurant.osmType && restaurant.osmId) {
+    return `/osm/${restaurant.osmType}/${restaurant.osmId}`;
+  }
+  return `/restaurants/${restaurant.id}`;
+}

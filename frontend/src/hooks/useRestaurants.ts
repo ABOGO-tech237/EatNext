@@ -8,7 +8,8 @@ export const restaurantKeys = {
   search: (params: SearchParams) => [...restaurantKeys.all, 'search', params] as const,
   detail: (id: string) => [...restaurantKeys.all, 'detail', id] as const,
   reviews: (id: string) => [...restaurantKeys.all, 'reviews', id] as const,
-  nearby: (lat: number, lng: number) => [...restaurantKeys.all, 'nearby', lat, lng] as const,
+  nearby: (lat: number, lng: number, includeOsm: boolean) =>
+    [...restaurantKeys.all, 'nearby', lat, lng, includeOsm] as const,
 };
 
 /** Hook de recherche avec mise en cache automatique. */
@@ -47,6 +48,34 @@ export function useCreateReview(restaurantId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: restaurantKeys.reviews(restaurantId) });
       queryClient.invalidateQueries({ queryKey: restaurantKeys.detail(restaurantId) });
+    },
+  });
+}
+
+/** Restaurants à proximité — fusion BDD + OSM via l'API backend. */
+export function useNearbyRestaurants(
+  lat: number,
+  lng: number,
+  radius: number,
+  includeOsm: boolean,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: restaurantKeys.nearby(lat, lng, includeOsm),
+    queryFn: () => restaurantApi.getNearbyRestaurants(lat, lng, radius, 50, includeOsm),
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+/** Synchronise une zone OSM → PostgreSQL via POST /restaurants/osm/sync. */
+export function useSyncOsmArea() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { lat: number; lng: number; radius?: number; limit?: number }) =>
+      restaurantApi.syncOsmArea(params.lat, params.lng, params.radius, params.limit),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: restaurantKeys.all });
     },
   });
 }

@@ -52,7 +52,7 @@ const createSchema = z.object({
  *     summary: Rechercher des restaurants publiés
  *     description: Liste paginée avec filtres plein-texte, géographiques et tri. Résultats mis en cache (Redis).
  *     parameters:
- *       - { in: query, name: q, schema: { type: string }, description: Recherche plein-texte (nom, description, cuisine) }
+ *       - { in: query, name: q, schema: { type: string }, description: "Recherche plein-texte nom cuisine" }
  *       - { in: query, name: city, schema: { type: string } }
  *       - { in: query, name: lat, schema: { type: number } }
  *       - { in: query, name: lng, schema: { type: number } }

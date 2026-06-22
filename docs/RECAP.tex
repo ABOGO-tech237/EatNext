@@ -1,0 +1,43 @@
+% Optional compilation: pdflatex docs/RECAP.tex
+\documentclass[11pt,a4paper]{article}
+\usepackage[english]{babel}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\title{EatNext --- Project Recap}
+\author{Crafti Digital Solutions}
+\date{June 2026}
+
+\begin{document}
+\maketitle
+
+\section{Phase 1 --- OSM / Overpass (completed)}
+
+\subsection{Principle}
+PostgreSQL is filled \textbf{only via the backend API}. The frontend never calls Overpass directly.
+
+\subsection{API endpoints}
+\begin{itemize}
+  \item \texttt{POST /v1/restaurants/osm/sync} --- batch upsert by zone
+  \item \texttt{GET /v1/restaurants/osm/nearby?sync=true} --- fetch + persist
+  \item \texttt{GET /v1/restaurants/osm/:type/:id?sync=true} --- single POI $\rightarrow$ UUID
+  \item \texttt{GET /v1/restaurants/nearby?includeOsm=true} --- merged view
+\end{itemize}
+
+\subsection{Frontend}
+\begin{itemize}
+  \item SearchPage: proximity mode, ``Synchroniser la zone'', include OSM toggle
+  \item Leaflet map: blue markers (OSM), green markers (PostgreSQL)
+  \item OsmRestaurantPage: auto-sync then redirect to \texttt{/restaurants/:uuid}
+\end{itemize}
+
+\subsection{Infrastructure}
+PostgreSQL and Redis via Docker Compose. Prisma schema includes \texttt{osmId}, \texttt{source}, \texttt{osmTags}.
+
+\section{Phase 3 --- API integration (completed)}
+Frontend uses real API (\texttt{VITE\_USE\_MOCK=false}), JWT on axios, no silent mock fallback.
+
+\section{Git workflow}
+\texttt{main} = infra only; feature branches; user merges to \texttt{develop}.
+
+\end{document}
