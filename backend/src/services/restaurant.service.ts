@@ -11,6 +11,8 @@ import { prisma } from '../lib/prisma.js';
 import { cacheDelPattern, cacheGet, cacheSet } from '../lib/redis.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { geohashPrefix, haversineKm, hashSearchParams } from '../utils/geo.js';
+import * as overpassService from './overpass.service.js';
+import * as osmSyncService from './osmSync.service.js';
 
 // Durées de vie (secondes) des différentes entrées de cache.
 const SEARCH_TTL = 300;
@@ -145,6 +147,101 @@ export async function getNearbyRestaurants(lat: number, lng: number, radius = 50
   const result = { items: enriched };
   await cacheSet(cacheKey, result, NEARBY_TTL);
   return result;
+}
+
+/** Identifiant synthétique pour un POI OSM non encore persisté en base. */
+function syntheticOsmId(osmType: string, osmId: string): string {
+  return `osm-${osmType}-${osmId}`;
+}
+
+/**
+ * Restaurants OSM à proximité — Overpass dynamique ou sync DB si `sync=true`.
+ */
+export async function getOsmNearbyRestaurants(
+  lat: number,
+  lng: number,
+  radius = 2000,
+  limit = 50,
+  sync = false,
+) {
+  if (sync) {
+    const { items } = await osmSyncService.syncNearbyToDb(lat, lng, radius, limit);
+    const enriched = items
+      .map((r) => ({
+        ...r,
+        distance: haversineKm(lat, lng, r.lat, r.lng) * 1000,
+      }))
+      .sort((a, b) => a.distance - b.distance);
+    return { items: enriched, source: 'db_synced' as const };
+  }
+
+  const osmItems = await overpassService.searchNearby(lat, lng, radius, limit);
+  const items = osmItems.map((dto) => ({
+    id: syntheticOsmId(dto.osmType, dto.osmId),
+    name: dto.name,
+    address: dto.address,
+    city: dto.city,
+    lat: dto.lat,
+    lng: dto.lng,
+    cuisineType: dto.cuisineType,
+    priceRange: 2,
+    avgRating: 0,
+    reviewCount: 0,
+    photos: [] as string[],
+    status: 'published' as const,
+    source: 'OSM_SYNC' as const,
+    osmId: dto.osmId,
+    osmType: dto.osmType,
+    osmTags: dto.osmTags,
+    openingHours: dto.openingHours ?? null,
+    phone: dto.phone ?? null,
+    website: dto.website ?? null,
+    distance: dto.distance,
+  }));
+
+  return { items, source: 'overpass' as const };
+}
+
+/**
+ * Fusionne restaurants publiés en base + POIs OSM (optionnel).
+ * Déduplique par osmId : la version base (avec avis/favoris) prime.
+ */
+export async function getMergedNearbyRestaurants(
+  lat: number,
+  lng: number,
+  radius = 5000,
+  limit = 20,
+  includeOsm = false,
+) {
+  const dbResult = await getNearbyRestaurants(lat, lng, radius, limit);
+  const dbItems = dbResult.items as Array<Record<string, unknown> & { osmId?: string | null }>;
+
+  if (!includeOsm) {
+    return { items: dbItems, osmCount: 0, dbCount: dbItems.length };
+  }
+
+  const osmResult = await getOsmNearbyRestaurants(lat, lng, radius, limit * 2, false);
+  const knownOsmIds = new Set(
+    dbItems.map((r) => r.osmId).filter((id): id is string => Boolean(id)),
+  );
+
+  const osmOnly = osmResult.items.filter((r) => r.osmId && !knownOsmIds.has(r.osmId));
+  const merged = [...dbItems, ...osmOnly]
+    .map((r) => ({
+      ...r,
+      distance:
+        typeof r.distance === 'number'
+          ? r.distance
+          : haversineKm(lat, lng, r.lat as number, r.lng as number) * 1000,
+    }))
+    .sort((a, b) => (a.distance as number) - (b.distance as number))
+    .slice(0, limit);
+
+  return {
+    items: merged,
+    osmCount: osmOnly.length,
+    dbCount: dbItems.length,
+  };
 }
 
 /** Détail d'un restaurant (avec propriétaire et compteurs), mis en cache. */

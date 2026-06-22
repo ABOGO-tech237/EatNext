@@ -19,6 +19,8 @@ export const env = {
   refreshTokenSecret: required('REFRESH_TOKEN_SECRET'),
   refreshTokenExpiresIn: Number(process.env.REFRESH_TOKEN_EXPIRES_IN ?? 604800),
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
+  overpassUrl: process.env.OVERPASS_URL ?? 'https://overpass-api.de/api/interpreter',
+  overpassTimeoutMs: Number(process.env.OVERPASS_TIMEOUT_MS ?? 15000),
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 900000),
   rateLimitMax: Number(process.env.RATE_LIMIT_MAX ?? 100),
 };

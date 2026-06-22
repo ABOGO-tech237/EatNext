@@ -11,6 +11,8 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { sendSuccess } from '../utils/response.js';
 import * as restaurantService from '../services/restaurant.service.js';
+import * as osmSyncService from '../services/osmSync.service.js';
+import * as overpassService from '../services/overpass.service.js';
 
 const router = Router();
 
@@ -101,6 +103,7 @@ router.get('/', validateQuery(searchSchema), async (req, res, next) => {
  *       - { in: query, name: lng, required: true, schema: { type: number } }
  *       - { in: query, name: radius, schema: { type: number, default: 5000 }, description: Rayon en mètres }
  *       - { in: query, name: limit, schema: { type: integer, default: 20 } }
+ *       - { in: query, name: includeOsm, schema: { type: boolean, default: false }, description: Fusionner avec les POIs OpenStreetMap }
  *     responses:
  *       200:
  *         description: Restaurants triés par distance croissante.
@@ -120,12 +123,166 @@ router.get('/nearby', async (req, res, next) => {
     const lng = Number(req.query.lng);
     const radius = Number(req.query.radius ?? 5000);
     const limit = Number(req.query.limit ?? 20);
+    const includeOsm = req.query.includeOsm === 'true' || req.query.includeOsm === '1';
     // lat/lng sont obligatoires pour une recherche géographique.
     if (!lat || !lng) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'lat et lng requis', status: 400 } });
     }
-    const result = await restaurantService.getNearbyRestaurants(lat, lng, radius, limit);
-    sendSuccess(res, result.items);
+    const result = includeOsm
+      ? await restaurantService.getMergedNearbyRestaurants(lat, lng, radius, limit, true)
+      : await restaurantService.getNearbyRestaurants(lat, lng, radius, limit);
+    sendSuccess(res, result.items, 200, includeOsm ? { osmCount: (result as { osmCount?: number }).osmCount, dbCount: (result as { dbCount?: number }).dbCount } : undefined);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @openapi
+ * /restaurants/osm/nearby:
+ *   get:
+ *     tags: [Restaurants]
+ *     summary: POIs alimentaires OpenStreetMap à proximité (Overpass API)
+ *     description: >
+ *       Recherche dynamique via Overpass. Si sync=true, upsert en PostgreSQL avant retour
+ *       (cache persistant + id UUID pour avis/favoris).
+ *     parameters:
+ *       - { in: query, name: lat, required: true, schema: { type: number }, example: 3.8667 }
+ *       - { in: query, name: lng, required: true, schema: { type: number }, example: 11.5167 }
+ *       - { in: query, name: radius, schema: { type: number, default: 2000 }, description: Rayon en mètres }
+ *       - { in: query, name: limit, schema: { type: integer, default: 50 } }
+ *       - { in: query, name: sync, schema: { type: boolean, default: false }, description: Synchroniser en base avant retour }
+ *     responses:
+ *       200:
+ *         description: Liste de POIs OSM (dynamiques ou persistés si sync=true).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data: { type: array, items: { $ref: '#/components/schemas/Restaurant' } }
+ *       503: { description: Overpass API indisponible ou timeout }
+ */
+router.get('/osm/nearby', async (req, res, next) => {
+  try {
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    const radius = Number(req.query.radius ?? 2000);
+    const limit = Number(req.query.limit ?? 50);
+    const sync = req.query.sync === 'true' || req.query.sync === '1';
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'lat et lng requis', status: 400 } });
+    }
+
+    const result = await restaurantService.getOsmNearbyRestaurants(lat, lng, radius, limit, sync);
+    sendSuccess(res, result.items, 200, { source: result.source });
+  } catch (err) {
+    next(err);
+  }
+});
+
+const osmSyncSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+  radius: z.number().min(100).max(50000).optional(),
+  limit: z.number().min(1).max(200).optional(),
+});
+
+/**
+ * @openapi
+ * /restaurants/osm/sync:
+ *   post:
+ *     tags: [Restaurants]
+ *     summary: Synchroniser une zone OSM vers PostgreSQL
+ *     description: Fetch Overpass puis upsert des restaurants OSM (osmId unique). Public pour alimenter le cache local.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [lat, lng]
+ *             properties:
+ *               lat: { type: number, example: 3.8667 }
+ *               lng: { type: number, example: 11.5167 }
+ *               radius: { type: number, default: 2000, description: Rayon en mètres }
+ *               limit: { type: integer, default: 50 }
+ *     responses:
+ *       200:
+ *         description: Zone synchronisée.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         synced: { type: integer }
+ *                         items: { type: array, items: { $ref: '#/components/schemas/Restaurant' } }
+ */
+router.post('/osm/sync', validateBody(osmSyncSchema), async (req, res, next) => {
+  try {
+    const { lat, lng, radius = 2000, limit = 50 } = req.body;
+    const result = await osmSyncService.syncNearbyToDb(lat, lng, radius, limit);
+    sendSuccess(res, result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @openapi
+ * /restaurants/osm/{osmType}/{osmId}:
+ *   get:
+ *     tags: [Restaurants]
+ *     summary: Détail d'un POI OSM par identifiant
+ *     parameters:
+ *       - { in: path, name: osmType, required: true, schema: { type: string, enum: [node, way, relation] } }
+ *       - { in: path, name: osmId, required: true, schema: { type: string } }
+ *       - { in: query, name: sync, schema: { type: boolean, default: false }, description: Upsert en base avant retour }
+ *     responses:
+ *       200:
+ *         description: POI OSM trouvé.
+ *       404:
+ *         description: POI introuvable sur OpenStreetMap.
+ */
+router.get('/osm/:osmType/:osmId', async (req, res, next) => {
+  try {
+    const osmType = req.params.osmType as 'node' | 'way' | 'relation';
+    const osmId = req.params.osmId;
+    const sync = req.query.sync === 'true' || req.query.sync === '1';
+
+    if (!['node', 'way', 'relation'].includes(osmType)) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'osmType invalide', status: 400 } });
+    }
+
+    if (sync) {
+      const restaurant = await osmSyncService.syncByOsmId(osmType, osmId);
+      if (!restaurant) {
+        return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'POI OSM introuvable', status: 404 } });
+      }
+      return sendSuccess(res, restaurant);
+    }
+
+    const dto = await overpassService.getByOsmId(osmType, osmId);
+    if (!dto) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'POI OSM introuvable', status: 404 } });
+    }
+    sendSuccess(res, {
+      id: `osm-${dto.osmType}-${dto.osmId}`,
+      ...dto,
+      priceRange: 2,
+      avgRating: 0,
+      reviewCount: 0,
+      photos: [],
+      status: 'published',
+    });
   } catch (err) {
     next(err);
   }
