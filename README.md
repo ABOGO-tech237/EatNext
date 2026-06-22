@@ -76,6 +76,15 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
 
 4. Ouvrir le client : [http://localhost:5173](http://localhost:5173) — l’API est sur [http://localhost:3000](http://localhost:3000).
 
+## OpenStreetMap / Overpass (hybride)
+
+EatNext peut découvrir des restaurants via **Overpass API** et les **synchroniser en PostgreSQL** pour avis et favoris. Voir [docs/OSM.md](docs/OSM.md).
+
+Endpoints principaux :
+- `GET /v1/restaurants/osm/nearby?lat=&lng=&radius=&sync=`
+- `POST /v1/restaurants/osm/sync`
+- `GET /v1/restaurants/nearby?includeOsm=true`
+
 ## Stratégie de branches
 
 - **`main`** — infrastructure uniquement (Docker, socle minimal backend/frontend, schéma Prisma partagé, documentation infra)
