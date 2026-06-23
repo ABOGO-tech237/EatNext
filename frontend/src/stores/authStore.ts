@@ -42,5 +42,5 @@ export const useAuthStore = create<AuthState>()(
 
 /** Sélecteur pratique : l'utilisateur est-il connecté ? */
 export function useIsAuthenticated(): boolean {
-  return useAuthStore((s) => !!s.user && !!s.tokens);
+  return useAuthStore((s) => s.hydrated && !!s.user && !!s.tokens?.accessToken);
 }

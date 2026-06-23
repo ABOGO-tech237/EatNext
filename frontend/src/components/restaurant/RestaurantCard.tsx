@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Badge } from '../ui/Badge';
 import { Rating } from '../ui/Rating';
 import { PriceRange } from '../ui/PriceRange';
-import { cn, formatDistance, isOsmEphemeral, restaurantDetailPath } from '../../lib/utils';
+import { cn, formatDistance, isOsmEphemeral, restaurantDetailPath, restaurantPhotoUrl } from '../../lib/utils';
 import type { Restaurant } from '../../types';
 
 interface RestaurantCardProps {
@@ -27,15 +27,14 @@ export function RestaurantCard({
   favoriteLoading,
   compact,
 }: RestaurantCardProps) {
-  const photo = restaurant.photos[0] ?? 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800';
+  const photo = restaurantPhotoUrl(restaurant);
   const distance = formatDistance(restaurant.distance);
 
   return (
     <motion.article
-      layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={{ duration: 0.2 }}
       className="group relative overflow-hidden rounded-2xl bg-white shadow-card transition-shadow hover:shadow-card-hover"
     >
       <Link to={restaurantDetailPath(restaurant)} className="block">

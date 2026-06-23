@@ -3,7 +3,7 @@ import { Search, MapPin, UtensilsCrossed, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { Button } from '../components/ui/Button';
-import { useRestaurantSearch } from '../hooks/useRestaurants';
+import { useRestaurantSearch, usePublicStats } from '../hooks/useRestaurants';
 import { RestaurantGridSkeleton } from '../components/ui/Spinner';
 
 const FEATURED_PARAMS = { limit: 6, sortBy: 'rating' as const, order: 'desc' as const };
@@ -15,6 +15,13 @@ const FEATURED_PARAMS = { limit: 6, sortBy: 'rating' as const, order: 'desc' as 
 export default function HomePage() {
   const navigate = useNavigate();
   const { data, isLoading } = useRestaurantSearch(FEATURED_PARAMS);
+  const { data: stats } = usePublicStats();
+
+  const heroStats = [
+    { icon: UtensilsCrossed, label: 'Restaurants', value: stats ? String(stats.restaurants) : '—' },
+    { icon: Star, label: 'Avis', value: stats ? String(stats.reviews) : '—' },
+    { icon: MapPin, label: 'Villes', value: stats ? String(stats.cities) : '—' },
+  ];
 
   const categories = [
     { label: 'Camerounaise', value: 'camerounaise', emoji: '🍲' },
@@ -58,11 +65,7 @@ export default function HomePage() {
           </motion.div>
 
           <div className="mt-12 grid grid-cols-3 gap-4 sm:gap-8 max-w-lg">
-            {[
-              { icon: UtensilsCrossed, label: 'Restaurants', value: '50+' },
-              { icon: Star, label: 'Avis', value: '1 200+' },
-              { icon: MapPin, label: 'Villes', value: '2' },
-            ].map(({ icon: Icon, label, value }) => (
+            {heroStats.map(({ icon: Icon, label, value }) => (
               <div key={label} className="text-center">
                 <Icon className="mx-auto h-6 w-6 text-brand-200" />
                 <p className="mt-1 text-2xl font-bold">{value}</p>

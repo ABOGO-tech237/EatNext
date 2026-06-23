@@ -94,7 +94,7 @@ const definition: swaggerJSDoc.Options['definition'] = {
         type: 'integer',
         minimum: 1,
         maximum: 4,
-        description: 'Gamme de prix de 1 (€) à 4 (€€€€).',
+        description: 'Gamme de prix de 1 (économique, < 3 000 FCFA) à 4 (premium, 20 000+ FCFA).',
       },
 
       // ---- Entités ----

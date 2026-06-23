@@ -1,4 +1,9 @@
-import { formatPriceRange } from '../../lib/utils';
+import {
+  formatPriceRange,
+  formatPriceRangeShort,
+  getPriceRangeTier,
+  PRICE_RANGE_TIERS,
+} from '../../lib/utils';
 import { cn } from '../../lib/utils';
 
 interface PriceRangeProps {
@@ -6,16 +11,28 @@ interface PriceRangeProps {
   className?: string;
 }
 
-/** Affiche la fourchette de prix avec symboles € actifs/inactifs. */
+/** Affiche la fourchette de budget avec indicateur visuel et montant FCFA. */
 export function PriceRange({ range, className }: PriceRangeProps) {
-  const max = 4;
+  const tier = getPriceRangeTier(range);
+
   return (
-    <span className={cn('text-sm font-medium', className)} aria-label={`Prix : ${formatPriceRange(range)}`}>
-      {Array.from({ length: max }).map((_, i) => (
-        <span key={i} className={i < range ? 'text-ink-800' : 'text-ink-300'}>
-          €
-        </span>
-      ))}
+    <span
+      className={cn('inline-flex items-center gap-1.5 text-sm font-medium', className)}
+      aria-label={`Prix : ${formatPriceRange(range)}`}
+      title={tier.full}
+    >
+      <span className="inline-flex gap-0.5" aria-hidden>
+        {PRICE_RANGE_TIERS.map(({ level }) => (
+          <span
+            key={level}
+            className={cn(
+              'h-1.5 w-1.5 rounded-full bg-current',
+              level <= tier.level ? 'opacity-90' : 'opacity-25',
+            )}
+          />
+        ))}
+      </span>
+      <span className="text-xs">{formatPriceRangeShort(range)}</span>
     </span>
   );
 }

@@ -1,43 +1,513 @@
 % Optional compilation: pdflatex docs/RECAP.tex
 \documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
 \usepackage[english]{babel}
 \usepackage{hyperref}
 \usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{listings}
+\geometry{margin=2.5cm}
 
-\title{EatNext --- Project Recap}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+}
+
+\title{EatNext --- Technical Recap}
 \author{Crafti Digital Solutions}
 \date{June 2026}
 
 \begin{document}
 \maketitle
+\tableofcontents
+\newpage
 
-\section{Phase 1 --- OSM / Overpass (completed)}
+%----------------------------------------------------------------------
+\section{Project Overview}
+%----------------------------------------------------------------------
 
-\subsection{Principle}
-PostgreSQL is filled \textbf{only via the backend API}. The frontend never calls Overpass directly.
+EatNext is a community-driven restaurant discovery platform targeting the African market
+(Yaound\'e, Douala, Limbe, and beyond). Users can search restaurants, read and write
+reviews, file complaints, and save favorites. The technical specification is
+\textbf{STA.pdf} (Crafti Digital Solutions).
 
-\subsection{API endpoints}
+The \texttt{develop} branch implements a full-stack monorepo:
 \begin{itemize}
-  \item \texttt{POST /v1/restaurants/osm/sync} --- batch upsert by zone
-  \item \texttt{GET /v1/restaurants/osm/nearby?sync=true} --- fetch + persist
-  \item \texttt{GET /v1/restaurants/osm/:type/:id?sync=true} --- single POI $\rightarrow$ UUID
-  \item \texttt{GET /v1/restaurants/nearby?includeOsm=true} --- merged view
+  \item \textbf{Backend} --- Node.js, Express, Prisma ORM, JWT auth, Swagger docs.
+  \item \textbf{Frontend} --- React 19, Vite 6, TypeScript, Tailwind CSS, Leaflet maps.
+  \item \textbf{Data} --- PostgreSQL~16 and Redis~7 via Docker Compose.
+  \item \textbf{OSM integration} --- Overpass API called \emph{only} from the backend;
+        PostgreSQL is populated exclusively through the EatNext REST API.
 \end{itemize}
 
-\subsection{Frontend}
+%----------------------------------------------------------------------
+\section{Repository Layout}
+%----------------------------------------------------------------------
+
+\begin{verbatim}
+eatnext/
+├── docker-compose.yml          # PostgreSQL 16 + Redis 7
+├── backend/
+│   ├── prisma/
+│   │   ├── schema.prisma       # Data models and enums
+│   │   ├── seed.ts             # Demo users + restaurants
+│   │   └── migrations/         # SQL migrations (OSM fields)
+│   └── src/
+│       ├── app.ts              # Express app factory
+│       ├── server.ts           # HTTP entry point
+│       ├── config/             # env.ts, swagger.ts
+│       ├── lib/                # prisma.ts, redis.ts
+│       ├── middleware/         # auth.ts, validate.ts, errorHandler.ts
+│       ├── routes/             # auth, restaurant, review, complaint,
+│       │                       # favorite, admin
+│       ├── services/           # business logic + OSM sync
+│       └── utils/              # jwt, geo, response helpers
+├── frontend/
+│   └── src/
+│       ├── App.tsx             # React Router routes
+│       ├── pages/              # SearchPage, OsmRestaurantPage, ...
+│       ├── components/         # layout, restaurant, ui
+│       ├── hooks/              # React Query hooks
+│       ├── lib/api/            # axios client + API modules
+│       └── stores/             # Zustand auth store
+└── docs/
+    ├── OSM.md                  # OSM/Overpass strategy
+    └── RECAP.tex               # This document
+\end{verbatim}
+
+%----------------------------------------------------------------------
+\section{Database Layer}
+%----------------------------------------------------------------------
+
+\subsection{Docker Compose}
+
+\texttt{docker-compose.yml} runs two services with health checks and named volumes:
+
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Service} & \textbf{Image} & \textbf{Port} \\
+\midrule
+PostgreSQL & \texttt{postgres:16-alpine} & 5432 \\
+Redis & \texttt{redis:7-alpine} & 6379 \\
+\bottomrule
+\end{tabular}
+
+Credentials: user \texttt{eatnext}, password \texttt{eatnext}, database \texttt{eatnext}.
+
+\subsection{Connection String}
+
+\begin{lstlisting}
+DATABASE_URL=postgresql://eatnext:eatnext@localhost:5432/eatnext
+REDIS_URL=redis://localhost:6379
+\end{lstlisting}
+
+Defined in \texttt{backend/.env.example}. Prisma reads \texttt{DATABASE\_URL} from the
+environment via \texttt{backend/src/lib/prisma.ts}.
+
+\subsection{Prisma Schema (\texttt{backend/prisma/schema.prisma})}
+
+Seven models and five enums. Key enums:
+
 \begin{itemize}
-  \item SearchPage: proximity mode, ``Synchroniser la zone'', include OSM toggle
-  \item Leaflet map: blue markers (OSM), green markers (PostgreSQL)
-  \item OsmRestaurantPage: auto-sync then redirect to \texttt{/restaurants/:uuid}
+  \item \texttt{UserRole}: \texttt{user}, \texttt{owner}, \texttt{admin}
+  \item \texttt{RestaurantStatus}: \texttt{pending}, \texttt{published}, \texttt{rejected}, \texttt{suspended}
+  \item \texttt{RestaurantSource}: \texttt{USER\_SUBMITTED}, \texttt{OSM\_SYNC}
+  \item \texttt{ComplaintType} / \texttt{ComplaintStatus} for moderation workflow
 \end{itemize}
 
-\subsection{Infrastructure}
-PostgreSQL and Redis via Docker Compose. Prisma schema includes \texttt{osmId}, \texttt{source}, \texttt{osmTags}.
+\textbf{User} --- \texttt{id}, \texttt{email} (unique), \texttt{passwordHash}, \texttt{fullName},
+\texttt{role}, optional \texttt{googleId}, \texttt{isVerified}, \texttt{isBanned}.
 
-\section{Phase 3 --- API integration (completed)}
-Frontend uses real API (\texttt{VITE\_USE\_MOCK=false}), JWT on axios, no silent mock fallback.
+\textbf{Restaurant} --- core fields plus OSM integration:
 
-\section{Git workflow}
-\texttt{main} = infra only; feature branches; user merges to \texttt{develop}.
+\begin{lstlisting}
+model Restaurant {
+  id           String           @id @default(uuid())
+  name         String
+  address      String
+  city         String
+  lat          Float
+  lng          Float
+  cuisineType  String
+  priceRange   Int              // 1-4
+  avgRating    Float            @default(0)
+  reviewCount  Int              @default(0)
+  status       RestaurantStatus @default(pending)
+  source       RestaurantSource @default(USER_SUBMITTED)
+  // OSM fields (added via migration 20250622120000_add_osm_fields)
+  osmId        String?          @unique
+  osmType      String?          // node | way | relation
+  osmTags      Json?
+  lastSyncedAt DateTime?
+  openingHours String?
+  phone        String?
+  website      String?
+  @@index([lat, lng])
+  @@index([source])
+}
+\end{lstlisting}
+
+\textbf{Review} --- one review per user per restaurant (\texttt{@@unique([userId, restaurantId])}).
+
+\textbf{Complaint} --- typed complaints with status machine (\texttt{pending} $\rightarrow$
+\texttt{under\_review} $\rightarrow$ \texttt{resolved} / \texttt{rejected}).
+
+\textbf{Favorite} / \texttt{FavoriteList} --- user bookmarks, optionally grouped in lists.
+
+\textbf{MenuItem} --- menu entries linked to a restaurant (\texttt{restaurantId}, \texttt{name},
+\texttt{price}, optional \texttt{description}, \texttt{sortOrder}). Replaced atomically via
+\texttt{PUT /restaurants/:id/menu}; cascade-deleted when the parent restaurant is removed.
+
+\subsection{Migrations and Schema Push}
+
+Migration \texttt{20250622120000\_add\_osm\_fields} adds the \texttt{RestaurantSource} enum,
+OSM columns, unique index on \texttt{osm\_id}, and index on \texttt{source}.
+Migration \texttt{20250622130000\_add\_menu\_items} adds the \texttt{menu\_items} table.
+
+Local development typically uses:
+
+\begin{verbatim}
+cd backend
+npx prisma generate
+npx prisma db push          # sync schema to Docker Postgres
+npm run db:seed             # tsx prisma/seed.ts
+\end{verbatim}
+
+Production-style deploy: \texttt{npx prisma migrate deploy}.
+
+\subsection{Seed Data (\texttt{backend/prisma/seed.ts})}
+
+The seed script creates three users (bcrypt-hashed \texttt{Password123!}) and eight
+published restaurants in Yaound\'e, Douala, and Limbe with sample reviews:
+
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Email} & \textbf{Password} & \textbf{Role} \\
+\midrule
+\texttt{marie@example.com} & \texttt{Password123!} & user \\
+\texttt{admin@eatnext.africa} & \texttt{Password123!} & admin \\
+\texttt{owner@eatnext.africa} & \texttt{Password123!} & owner \\
+\bottomrule
+\end{tabular}
+
+Restaurants are \texttt{USER\_SUBMITTED} with \texttt{status = published}.
+OSM-synced restaurants appear after calling the sync endpoints (see Section~\ref{sec:osm}).
+
+%----------------------------------------------------------------------
+\section{Backend Code}
+%----------------------------------------------------------------------
+
+\subsection{Express Application (\texttt{backend/src/app.ts})}
+
+\texttt{createApp()} assembles the middleware stack and mounts versioned routers:
+
+\begin{itemize}
+  \item Security: \texttt{helmet}, \texttt{cors} (origin from \texttt{env.clientUrl}),
+        \texttt{compression}, \texttt{morgan}, \texttt{express.json}, \texttt{cookieParser}.
+  \item Rate limiting on \texttt{/v1/auth} only (credential-stuffing protection).
+  \item Health probe: \texttt{GET /health}.
+  \item Swagger UI: \texttt{/v1/docs} and raw spec at \texttt{/v1/docs.json}.
+  \item Business routers mounted under \texttt{/v1} and alias \texttt{/api/v1}.
+  \item Standard error envelope via \texttt{AppError} and \texttt{errorHandler}.
+\end{itemize}
+
+\subsection{Route Modules (\texttt{backend/src/routes/})}
+
+All routes are prefixed \texttt{/v1}. Input validation uses Zod schemas
+(\texttt{middleware/validate.ts}).
+
+\begin{tabular}{@{}p{3.2cm}p{9.5cm}@{}}
+\toprule
+\textbf{Module} & \textbf{Key Endpoints} \\
+\midrule
+\texttt{auth.routes.ts} &
+  \texttt{POST /auth/register}, \texttt{POST /auth/login},
+  \texttt{POST /auth/logout}, \texttt{POST /auth/refresh}, \texttt{GET /auth/me} \\
+\texttt{restaurant.routes.ts} &
+  \texttt{GET /restaurants} (search), \texttt{GET /restaurants/nearby},
+  \texttt{GET|POST|PUT|PATCH|DELETE /restaurants/:id},
+  OSM routes (Section~\ref{sec:osm}) \\
+\texttt{review.routes.ts} &
+  \texttt{GET /reviews/restaurants/:id/reviews},
+  \texttt{POST /reviews/restaurants/:id/reviews} \\
+\texttt{complaint.routes.ts} &
+  \texttt{POST /complaints}, \texttt{GET /complaints/:id} \\
+\texttt{favorite.routes.ts} &
+  \texttt{GET /favorites}, \texttt{POST /favorites}, \texttt{DELETE /favorites/:id} \\
+\texttt{admin.routes.ts} &
+  Moderation, analytics (admin role required) \\
+\bottomrule
+\end{tabular}
+
+\subsection{JWT Authentication (\texttt{backend/src/middleware/auth.ts})}
+
+\begin{lstlisting}
+export function authenticate(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer '))
+    return sendError(res, makeError('UNAUTHORIZED', '...', 401));
+  req.user = verifyAccessToken(header.slice(7));
+  next();
+}
+
+export function requireRole(...roles: UserRole[]) { /* 401 / 403 */ }
+\end{lstlisting}
+
+Protected routes use \texttt{authenticate}; admin-only routes add \texttt{requireRole('admin')}.
+The JWT payload (\texttt{sub}, \texttt{role}) is attached to \texttt{req.user}.
+
+\subsection{Services Layer (\texttt{backend/src/services/})}
+
+Business logic is separated from route handlers:
+
+\begin{itemize}
+  \item \texttt{auth.service.ts} --- register, login, token refresh (bcrypt + JWT).
+  \item \texttt{restaurant.service.ts} --- search, nearby, merged DB+OSM view, CRUD.
+  \item \texttt{review.service.ts}, \texttt{complaint.service.ts}, \texttt{favorite.service.ts}.
+  \item \texttt{admin.service.ts} --- moderation and analytics.
+  \item \texttt{overpass.service.ts} --- Overpass API client (Section~\ref{sec:osm}).
+  \item \texttt{osmSync.service.ts} --- OSM DTO $\rightarrow$ Prisma upsert (Section~\ref{sec:osm}).
+\end{itemize}
+
+Search results and nearby queries are cached in Redis
+(\texttt{backend/src/lib/redis.ts}, TTL $\sim$10\,min for Overpass responses).
+
+%----------------------------------------------------------------------
+\section{OSM / Overpass Hybrid Architecture}
+\label{sec:osm}
+%----------------------------------------------------------------------
+
+\textbf{Rule: the frontend never calls Overpass directly.}
+All discovery and database population go through the EatNext API.
+
+\begin{verbatim}
+Frontend React  -->  API Express  -->  Overpass API
+                           |
+                           v
+                    PostgreSQL (Docker) + Redis (cache)
+\end{verbatim}
+
+Full details: \texttt{docs/OSM.md}.
+
+\subsection{Overpass Service (\texttt{backend/src/services/overpass.service.ts})}
+
+\begin{itemize}
+  \item Builds Overpass QL queries for food POIs: \texttt{amenity=restaurant|cafe|fast\_food|bar|...}
+        and \texttt{shop=bakery} within a radius (100--50\,000\,m).
+  \item Normalises raw elements into \texttt{OsmRestaurantDto} (name, lat/lng, address, city,
+        cuisine, opening hours, phone, website, \texttt{osmTags}).
+  \item Caches responses in Redis under keys like \texttt{overpass:nearby:...} (TTL 600\,s).
+  \item Exports \texttt{searchNearby(lat, lng, radiusMeters, limit)} and
+        \texttt{getByOsmId(osmType, osmId)}.
+\end{itemize}
+
+\subsection{OSM Sync Service (\texttt{backend/src/services/osmSync.service.ts})}
+
+Maps Overpass DTOs to Prisma and upserts by unique \texttt{osmId}:
+
+\begin{lstlisting}
+export async function syncNearbyToDb(lat, lng, radiusMeters, limit) {
+  const osmItems = await overpassService.searchNearby(...);
+  const items = [];
+  for (const dto of osmItems)
+    items.push(await upsertOsmRestaurant(dto));
+  await cacheDelPattern('restaurants:*');
+  await cacheDelPattern('overpass:*');
+  return { synced: items.length, items };
+}
+\end{lstlisting}
+
+OSM restaurants are auto-published (\texttt{status: 'published'}, \texttt{source: 'OSM\_SYNC'}).
+After sync they receive a UUID usable for reviews and favorites.
+
+\subsection{Sync Endpoints (\texttt{backend/src/routes/restaurant.routes.ts})}
+
+\begin{tabular}{@{}p{5.8cm}p{7.2cm}@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Behaviour} \\
+\midrule
+\texttt{POST /v1/restaurants/osm/sync} &
+  Body: \texttt{\{ lat, lng, radius?, limit? \}}.
+  Batch upsert via \texttt{osmSyncService.syncNearbyToDb}. \\
+\texttt{GET /v1/restaurants/osm/nearby?sync=true} &
+  Fetch Overpass then persist before returning UUID-backed records. \\
+\texttt{GET /v1/restaurants/osm/:type/:id?sync=true} &
+  Single POI sync; returns persisted restaurant or 404. \\
+\texttt{GET /v1/restaurants/nearby?includeOsm=true} &
+  Merged view: PostgreSQL restaurants + live OSM POIs. \\
+\bottomrule
+\end{tabular}
+
+Verify synced records:
+
+\begin{verbatim}
+SELECT count(*) FROM restaurants WHERE source = 'OSM_SYNC';
+\end{verbatim}
+
+%----------------------------------------------------------------------
+\section{Frontend Code}
+%----------------------------------------------------------------------
+
+\subsection{Stack and Entry Point}
+
+Vite~6 + React~19 + TypeScript. \texttt{frontend/src/main.tsx} wraps the app with
+React Query (\texttt{@tanstack/react-query}) and toast notifications.
+\texttt{frontend/src/App.tsx} defines routes inside \texttt{MainLayout}:
+
+\begin{itemize}
+  \item \texttt{/} --- \texttt{HomePage}
+  \item \texttt{/search} --- \texttt{SearchPage} (filters + map + OSM sync)
+  \item \texttt{/restaurants/:id} --- \texttt{RestaurantDetailPage}
+  \item \texttt{/osm/:osmType/:osmId} --- \texttt{OsmRestaurantPage} (sync then redirect)
+  \item \texttt{/login}, \texttt{/register}
+  \item \texttt{/favorites}, \texttt{/profile} --- protected via \texttt{ProtectedRoute}
+\end{itemize}
+
+\subsection{API Client (\texttt{frontend/src/lib/api/client.ts})}
+
+Axios instance with JWT injection from Zustand auth store.
+All data comes from the backend API --- no local mock fallback:
+
+\begin{lstlisting}
+apiClient.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().tokens?.accessToken;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Response interceptor: surfaces API error messages
+\end{lstlisting}
+
+Restaurant API calls live in \texttt{frontend/src/lib/api/restaurants.ts}:
+\texttt{searchRestaurants}, \texttt{getNearbyRestaurants}, \texttt{syncOsmArea},
+\texttt{syncOsmPlace}, \texttt{createReview}, etc.
+
+\subsection{React Query Hooks (\texttt{frontend/src/hooks/useRestaurants.ts})}
+
+Centralised query keys for cache invalidation:
+
+\begin{lstlisting}
+export function useSyncOsmArea() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params) => restaurantApi.syncOsmArea(...),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: restaurantKeys.all }),
+  });
+}
+\end{lstlisting}
+
+Other hooks: \texttt{useRestaurantSearch}, \texttt{useRestaurant}, \texttt{useNearbyRestaurants}
+(with \texttt{includeOsm} flag), \texttt{useCreateReview}.
+Auth and favorites: \texttt{hooks/useAuth.ts}, \texttt{hooks/useFavorites.ts}.
+
+\subsection{Key Pages and Components}
+
+\textbf{SearchPage} (\texttt{frontend/src/pages/SearchPage.tsx}):
+\begin{itemize}
+  \item Two modes: database search (\texttt{GET /restaurants}) vs.\ proximity
+        (\texttt{GET /restaurants/nearby?includeOsm=true}).
+  \item Toggle ``Include OpenStreetMap''; ``Sync zone'' button calls
+        \texttt{POST /restaurants/osm/sync} via \texttt{useSyncOsmArea}.
+  \item List / map / split view; geolocation centres the map on the user.
+\end{itemize}
+
+\textbf{RestaurantMap} (\texttt{frontend/src/components/restaurant/RestaurantMap.tsx}):
+Leaflet map with colour-coded markers --- blue for ephemeral OSM POIs,
+green for PostgreSQL-backed restaurants. Links use \texttt{restaurantDetailPath}
+or \texttt{/osm/:type/:id} for unsynced POIs.
+
+\textbf{OsmRestaurantPage} (\texttt{frontend/src/pages/OsmRestaurantPage.tsx}):
+On mount, calls \texttt{syncOsmPlace(osmType, osmId)} (\texttt{GET ...?sync=true}),
+then redirects to \texttt{/restaurants/:uuid} so reviews and favorites work on a
+persisted record.
+
+\textbf{Layout}: \texttt{components/layout/MainLayout.tsx}, \texttt{Header.tsx},
+\texttt{Footer.tsx}. UI primitives in \texttt{components/ui/}.
+
+%----------------------------------------------------------------------
+\section{API Documentation}
+%----------------------------------------------------------------------
+
+Interactive Swagger UI is served at \url{http://localhost:3000/v1/docs}.
+The OpenAPI spec is generated from JSDoc annotations in route files
+(\texttt{backend/src/config/swagger.ts}, \texttt{swagger-jsdoc}).
+
+Raw JSON spec: \url{http://localhost:3000/v1/docs.json}.
+
+All responses follow a standard envelope: \texttt{\{ success, data, meta?, error? \}}.
+
+%----------------------------------------------------------------------
+\section{Git Workflow}
+%----------------------------------------------------------------------
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Branch} & \textbf{Purpose} \\
+\midrule
+\texttt{main} & Infrastructure only (Docker, Prisma schema, scaffolds) \\
+\texttt{develop} & Integration branch --- current full application \\
+\texttt{feature/*} & One feature per branch $\rightarrow$ PR to \texttt{develop} \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\noindent Remote: \url{git@github.com:Transfomers/EatNext.git}
+
+%----------------------------------------------------------------------
+\section{How to Run Locally}
+%----------------------------------------------------------------------
+
+\subsection{1.\ Start Docker services}
+
+\begin{verbatim}
+docker-compose up -d    # postgres:5432 + redis:6379
+\end{verbatim}
+
+\subsection{2.\ Backend (port 3000)}
+
+\begin{verbatim}
+cp backend/.env.example backend/.env
+cd backend && npm install
+npx prisma generate && npx prisma db push
+npm run db:seed && npm run dev
+\end{verbatim}
+
+\subsection{3.\ Frontend (port 5173)}
+
+\begin{verbatim}
+cp frontend/.env.example frontend/.env
+cd frontend && npm install && npm run dev
+\end{verbatim}
+
+\texttt{frontend/.env.example} sets \texttt{VITE\_API\_URL=http://localhost:3000/v1}.
+
+\subsection{Service URLs}
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Service} & \textbf{URL} \\
+\midrule
+Frontend & \url{http://localhost:5173} \\
+REST API & \url{http://localhost:3000/v1} \\
+Swagger & \url{http://localhost:3000/v1/docs} \\
+Health & \url{http://localhost:3000/health} \\
+\bottomrule
+\end{tabular}
+
+%----------------------------------------------------------------------
+\section{Remaining Work}
+%----------------------------------------------------------------------
+
+\begin{itemize}
+  \item Cloudinary photo upload wired in dependencies but not fully integrated in UI.
+  \item Google OAuth (\texttt{googleId} field exists; flow not implemented).
+  \item Email notifications (Nodemailer dependency present; not configured).
+  \item Production deployment, CI/CD, and cloud hosting (STA target: 99.9\,\% uptime).
+  \item End-to-end OSM sync testing with internet access to public Overpass servers.
+\end{itemize}
 
 \end{document}

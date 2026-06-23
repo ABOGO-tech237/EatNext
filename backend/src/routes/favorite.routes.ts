@@ -46,6 +46,24 @@ router.get('/', authenticate, async (req, res, next) => {
 
 /**
  * @openapi
+ * /favorites/{restaurantId}/status:
+ *   get:
+ *     tags: [Favorites]
+ *     summary: Vérifier si un restaurant est en favori
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/:restaurantId/status', authenticate, async (req, res, next) => {
+  try {
+    const isFav = await favoriteService.isFavorite(req.user!.sub, req.params.restaurantId);
+    sendSuccess(res, { isFavorite: isFav });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @openapi
  * /favorites/lists:
  *   get:
  *     tags: [Favorites]

@@ -12,6 +12,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:bootstrap": "tsx scripts/bootstrap-osm.ts",
+    "db:backfill-photos": "tsx scripts/backfill-photos.ts",
     "lint": "eslint src --ext .ts"
   },
   "prisma": {
@@ -40,6 +42,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@vercel/node": "^5.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.7.5",
     "@types/cookie-parser": "^1.4.8",

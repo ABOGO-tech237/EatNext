@@ -10,6 +10,7 @@ import { prisma } from '../lib/prisma.js';
 import { cacheDelPattern } from '../lib/redis.js';
 import * as overpassService from './overpass.service.js';
 import type { OsmRestaurantDto } from './overpass.service.js';
+import { extractPhotosFromOsmTags, isOsmStaticMapUrl } from '../utils/osmPhotos.js';
 
 /** Restaurant OSM persisté en base (aligné Prisma). */
 export type SyncedOsmRestaurant = Prisma.RestaurantGetPayload<Record<string, never>>;
@@ -28,6 +29,7 @@ function dtoToPrismaData(dto: OsmRestaurantDto): Prisma.RestaurantUncheckedCreat
     lng: dto.lng,
     cuisineType: dto.cuisineType,
     priceRange: 2,
+    photos: dto.photos,
     status: 'published',
     source: 'OSM_SYNC',
     osmId: dto.osmId,
@@ -64,6 +66,7 @@ export async function upsertOsmRestaurant(dto: OsmRestaurantDto): Promise<Synced
       openingHours: data.openingHours,
       phone: data.phone,
       website: data.website,
+      photos: data.photos,
       status: 'published',
       source: 'OSM_SYNC',
     },
@@ -85,8 +88,14 @@ export async function syncNearbyToDb(
   const osmItems = await overpassService.searchNearby(lat, lng, radiusMeters, limit);
 
   const items: SyncedOsmRestaurant[] = [];
-  for (const dto of osmItems) {
-    items.push(await upsertOsmRestaurant(dto));
+  const batchSize = 10;
+  for (let i = 0; i < osmItems.length; i += batchSize) {
+    const batch = osmItems.slice(i, i + batchSize);
+    const upserted = await Promise.all(batch.map((dto) => upsertOsmRestaurant(dto)));
+    items.push(...upserted);
+    if (osmItems.length > batchSize) {
+      console.log(`[osm-sync] ${Math.min(i + batchSize, osmItems.length)}/${osmItems.length} POIs persistés`);
+    }
   }
 
   // Purge les caches de recherche / nearby après sync.
@@ -94,6 +103,33 @@ export async function syncNearbyToDb(
   await cacheDelPattern('overpass:*');
 
   return { synced: items.length, items };
+}
+
+/**
+ * Met à jour les photos des restaurants OSM déjà en base (depuis osmTags ou carte statique).
+ */
+export async function backfillPhotosFromOsmTags(): Promise<number> {
+  const restaurants = await prisma.restaurant.findMany({
+    where: { source: 'OSM_SYNC' },
+    select: { id: true, osmTags: true, lat: true, lng: true, photos: true },
+  });
+
+  let updated = 0;
+  for (const r of restaurants) {
+    const tags = (r.osmTags ?? {}) as Record<string, string>;
+    const fromTags = extractPhotosFromOsmTags(tags);
+    const photos =
+      fromTags.length > 0 ? fromTags : r.photos.filter((p) => !isOsmStaticMapUrl(p));
+    const same =
+      r.photos.length === photos.length && r.photos.every((p, i) => p === photos[i]);
+    if (same) continue;
+
+    await prisma.restaurant.update({ where: { id: r.id }, data: { photos } });
+    updated++;
+  }
+
+  if (updated > 0) await cacheDelPattern('restaurants:*');
+  return updated;
 }
 
 /**

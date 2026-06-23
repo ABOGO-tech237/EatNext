@@ -187,7 +187,7 @@ export async function getOsmNearbyRestaurants(
     priceRange: 2,
     avgRating: 0,
     reviewCount: 0,
-    photos: [] as string[],
+    photos: dto.photos,
     status: 'published' as const,
     source: 'OSM_SYNC' as const,
     osmId: dto.osmId,
@@ -203,8 +203,8 @@ export async function getOsmNearbyRestaurants(
 }
 
 /**
- * Fusionne restaurants publiés en base + POIs OSM (optionnel).
- * Déduplique par osmId : la version base (avec avis/favoris) prime.
+ * Fusionne restaurants publiés en base (inclut OSM_SYNC déjà synchronisés).
+ * Pas d'appel Overpass live — évite les timeouts ; utiliser POST /osm/sync pour enrichir.
  */
 export async function getMergedNearbyRestaurants(
   lat: number,
@@ -213,34 +213,13 @@ export async function getMergedNearbyRestaurants(
   limit = 20,
   includeOsm = false,
 ) {
-  const dbResult = await getNearbyRestaurants(lat, lng, radius, limit);
-  const dbItems = dbResult.items as Array<Record<string, unknown> & { osmId?: string | null }>;
-
-  if (!includeOsm) {
-    return { items: dbItems, osmCount: 0, dbCount: dbItems.length };
-  }
-
-  const osmResult = await getOsmNearbyRestaurants(lat, lng, radius, limit * 2, false);
-  const knownOsmIds = new Set(
-    dbItems.map((r) => r.osmId).filter((id): id is string => Boolean(id)),
-  );
-
-  const osmOnly = osmResult.items.filter((r) => r.osmId && !knownOsmIds.has(r.osmId));
-  const merged = [...dbItems, ...osmOnly]
-    .map((r) => ({
-      ...r,
-      distance:
-        typeof r.distance === 'number'
-          ? r.distance
-          : haversineKm(lat, lng, r.lat as number, r.lng as number) * 1000,
-    }))
-    .sort((a, b) => (a.distance as number) - (b.distance as number))
-    .slice(0, limit);
-
+  const effectiveLimit = includeOsm ? Math.min(limit * 2, 50) : limit;
+  const result = await getNearbyRestaurants(lat, lng, radius, effectiveLimit);
+  const items = result.items as Array<{ source?: string }>;
   return {
-    items: merged,
-    osmCount: osmOnly.length,
-    dbCount: dbItems.length,
+    items: result.items,
+    osmCount: items.filter((r) => r.source === 'OSM_SYNC').length,
+    dbCount: items.length,
   };
 }
 
@@ -333,6 +312,51 @@ export async function deleteRestaurant(id: string) {
   await cacheDelPattern(`restaurant:${id}:*`);
 }
 
+export interface MenuItemInput {
+  name: string;
+  price: number;
+  description?: string;
+}
+
+/** Menu d'un restaurant, trié par `sortOrder`. */
+export async function getRestaurantMenu(restaurantId: string) {
+  const restaurant = await prisma.restaurant.findUnique({
+    where: { id: restaurantId },
+    select: { id: true },
+  });
+  if (!restaurant) throw new AppError('RESTAURANT_NOT_FOUND', 'Restaurant introuvable.', 404);
+
+  const items = await prisma.menuItem.findMany({
+    where: { restaurantId },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  return { restaurantId, items };
+}
+
+/** Remplace intégralement le menu (transaction atomique). */
+export async function replaceRestaurantMenu(restaurantId: string, items: MenuItemInput[]) {
+  const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
+  if (!restaurant) throw new AppError('RESTAURANT_NOT_FOUND', 'Restaurant introuvable.', 404);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.menuItem.deleteMany({ where: { restaurantId } });
+    if (items.length > 0) {
+      await tx.menuItem.createMany({
+        data: items.map((item, index) => ({
+          restaurantId,
+          name: item.name,
+          price: item.price,
+          description: item.description,
+          sortOrder: index,
+        })),
+      });
+    }
+  });
+
+  return getRestaurantMenu(restaurantId);
+}
+
 /**
  * Recalcule la note moyenne et le nombre d'avis d'un restaurant. Appelé après
  * toute création/modification/suppression d'avis pour garder ces champs
@@ -354,4 +378,23 @@ export async function recalculateRating(restaurantId: string) {
   });
   await cacheDelPattern(`restaurant:${restaurantId}:*`);
   await cacheDelPattern('restaurants:*');
+}
+
+/** Compteurs publics pour la page d'accueil (données réelles en base). */
+export async function getPublicStats() {
+  const [restaurants, reviews, cityRows] = await Promise.all([
+    prisma.restaurant.count({ where: { status: 'published' } }),
+    prisma.review.count(),
+    prisma.restaurant.findMany({
+      where: { status: 'published' },
+      select: { city: true },
+      distinct: ['city'],
+    }),
+  ]);
+
+  return {
+    restaurants,
+    reviews,
+    cities: cityRows.length,
+  };
 }

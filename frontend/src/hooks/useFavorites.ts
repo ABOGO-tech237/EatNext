@@ -13,6 +13,7 @@ export function useFavorites(enabled = true) {
     queryFn: favoritesApi.listFavorites,
     enabled,
     staleTime: 30_000,
+    retry: false,
   });
 }
 

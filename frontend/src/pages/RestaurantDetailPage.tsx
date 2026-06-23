@@ -12,6 +12,7 @@ import { PriceRange } from '../components/ui/PriceRange';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Spinner } from '../components/ui/Spinner';
+import { restaurantPhotoUrl } from '../lib/utils';
 
 /**
  * Fiche restaurant complète : galerie, infos, carte, avis et formulaire d'avis.
@@ -41,9 +42,7 @@ export default function RestaurantDetailPage() {
     );
   }
 
-  const photos = restaurant.photos.length > 0
-    ? restaurant.photos
-    : ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200'];
+  const heroPhoto = restaurantPhotoUrl(restaurant);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +61,7 @@ export default function RestaurantDetailPage() {
       {/* Galerie hero */}
       <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden bg-ink-200">
         <img
-          src={photos[0]}
+          src={heroPhoto}
           alt={restaurant.name}
           className="h-full w-full object-cover"
         />

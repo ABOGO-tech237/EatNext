@@ -61,9 +61,23 @@ curl "http://localhost:3000/v1/restaurants/osm/node/123456?sync=true"
 ```env
 DATABASE_URL=postgresql://eatnext:eatnext@localhost:5432/eatnext
 OVERPASS_URL=https://overpass-api.de/api/interpreter
+OVERPASS_FALLBACK_URLS=https://overpass.kumi.systems/api/interpreter
 OVERPASS_TIMEOUT_MS=15000
-REDIS_URL=redis://localhost:6379
+OSM_SYNC_ON_START=true
+OSM_SYNC_INTERVAL_HOURS=24
 ```
+
+Zones par défaut : **Yaoundé** et **Douala** (`OSM_SYNC_ZONES` en JSON pour personnaliser).
+
+## Bootstrap initial
+
+```bash
+cd backend
+npm run db:seed        # compte admin uniquement
+npm run db:bootstrap   # Overpass → PostgreSQL (purge les données fictives)
+```
+
+Au démarrage du backend (`OSM_SYNC_ON_START=true`), la base est resynchronisée si elle est vide ou si `OSM_PURGE_NON_OSM=true`.
 
 ## Vérifier la base après sync
 

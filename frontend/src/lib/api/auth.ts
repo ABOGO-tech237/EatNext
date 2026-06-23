@@ -1,5 +1,4 @@
-import { apiClient, withMockFallback } from './client';
-import { MOCK_USER } from '../mockData';
+import { apiClient } from './client';
 import type { ApiResponse, AuthTokens, User } from '../../types';
 
 interface AuthPayload {
@@ -13,44 +12,23 @@ export async function register(payload: {
   email: string;
   password: string;
 }): Promise<AuthPayload> {
-  return withMockFallback(
-    async () => {
-      const { data } = await apiClient.post<ApiResponse<AuthPayload>>('/auth/register', payload);
-      return data.data;
-    },
-    () => ({
-      user: { ...MOCK_USER, fullName: payload.fullName, email: payload.email },
-      tokens: { accessToken: 'mock-access', refreshToken: 'mock-refresh' },
-    }),
-  );
+  const { data } = await apiClient.post<ApiResponse<AuthPayload>>('/auth/register', payload);
+  return data.data;
 }
 
 /** Connexion par email / mot de passe. */
 export async function login(email: string, password: string): Promise<AuthPayload> {
-  return withMockFallback(
-    async () => {
-      const { data } = await apiClient.post<ApiResponse<AuthPayload>>('/auth/login', {
-        email,
-        password,
-      });
-      return data.data;
-    },
-    () => ({
-      user: { ...MOCK_USER, email },
-      tokens: { accessToken: 'mock-access', refreshToken: 'mock-refresh' },
-    }),
-  );
+  const { data } = await apiClient.post<ApiResponse<AuthPayload>>('/auth/login', {
+    email,
+    password,
+  });
+  return data.data;
 }
 
 /** Récupère le profil de l'utilisateur connecté. */
 export async function getMe(): Promise<User> {
-  return withMockFallback(
-    async () => {
-      const { data } = await apiClient.get<ApiResponse<{ user: User }>>('/auth/me');
-      return data.data.user;
-    },
-    () => MOCK_USER,
-  );
+  const { data } = await apiClient.get<ApiResponse<{ user: User }>>('/auth/me');
+  return data.data.user;
 }
 
 /** Déconnexion côté serveur (confirmation) puis purge locale. */

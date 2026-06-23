@@ -1,6 +1,7 @@
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { PRICE_RANGE_TIERS } from '../../lib/utils';
 import type { SearchParams } from '../../types';
 
 interface SearchFiltersProps {
@@ -88,8 +89,8 @@ export function SearchFilters({ params, onChange, onSearch }: SearchFiltersProps
             className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           >
             <option value="">Tous</option>
-            {[1, 2, 3, 4].map((p) => (
-              <option key={p} value={p}>{'€'.repeat(p)}</option>
+            {PRICE_RANGE_TIERS.map(({ level, full }) => (
+              <option key={level} value={level}>{full}</option>
             ))}
           </select>
         </div>

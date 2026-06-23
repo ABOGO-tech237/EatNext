@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install && npx prisma generate",
+  "buildCommand": "npm run build && npx prisma migrate deploy",
+  "rewrites": [
+    { "source": "/health", "destination": "/api" },
+    { "source": "/v1/(.*)", "destination": "/api" },
+    { "source": "/api/v1/(.*)", "destination": "/api" }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "api/cron/osm-sync.ts": {
+      "maxDuration": 300,
+      "memory": 1024
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/osm-sync",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}

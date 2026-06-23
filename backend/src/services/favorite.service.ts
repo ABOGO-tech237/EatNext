@@ -68,3 +68,11 @@ export async function addToFavoriteList(userId: string, listId: string, restaura
   if (!list) throw new AppError('LIST_NOT_FOUND', 'Liste introuvable.', 404);
   return addFavorite(userId, restaurantId, listId);
 }
+
+export async function isFavorite(userId: string, restaurantId: string): Promise<boolean> {
+  const fav = await prisma.favorite.findUnique({
+    where: { userId_restaurantId: { userId, restaurantId } },
+    select: { id: true },
+  });
+  return !!fav;
+}

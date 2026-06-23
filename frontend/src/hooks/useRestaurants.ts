@@ -5,12 +5,22 @@ import type { SearchParams } from '../types';
 /** Clés de cache React Query — centralisées pour invalidation cohérente. */
 export const restaurantKeys = {
   all: ['restaurants'] as const,
+  stats: () => [...restaurantKeys.all, 'stats'] as const,
   search: (params: SearchParams) => [...restaurantKeys.all, 'search', params] as const,
   detail: (id: string) => [...restaurantKeys.all, 'detail', id] as const,
   reviews: (id: string) => [...restaurantKeys.all, 'reviews', id] as const,
   nearby: (lat: number, lng: number, includeOsm: boolean) =>
     [...restaurantKeys.all, 'nearby', lat, lng, includeOsm] as const,
 };
+
+/** Statistiques publiques (restaurants / avis / villes en base). */
+export function usePublicStats() {
+  return useQuery({
+    queryKey: restaurantKeys.stats(),
+    queryFn: () => restaurantApi.getPublicStats(),
+    staleTime: 120_000,
+  });
+}
 
 /** Hook de recherche avec mise en cache automatique. */
 export function useRestaurantSearch(params: SearchParams) {

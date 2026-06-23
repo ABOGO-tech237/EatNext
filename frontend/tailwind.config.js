@@ -42,6 +42,25 @@ export default {
         '2xl': '1rem',
         '3xl': '1.25rem',
       },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'slide-down': {
+          '0%': { opacity: '0', transform: 'translateY(-6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '200% center' },
+          '100%': { backgroundPosition: '-200% center' },
+        },
+      },
+      animation: {
+        'fade-in': 'fade-in 0.35s ease-out',
+        'slide-down': 'slide-down 0.3s ease-out',
+        shimmer: 'shimmer 3s linear infinite',
+      },
     },
   },
   plugins: [],

@@ -12,7 +12,7 @@ import {
   useNearbyRestaurants,
   useSyncOsmArea,
 } from '../hooks/useRestaurants';
-import { useIsFavorite, useToggleFavorite } from '../hooks/useFavorites';
+import { useToggleFavorite, useFavorites } from '../hooks/useFavorites';
 import { useIsAuthenticated } from '../stores/authStore';
 import type { SearchParams, Restaurant } from '../types';
 import { cn } from '../lib/utils';
@@ -68,6 +68,12 @@ export default function SearchPage() {
   const restaurants = osmMode ? (nearbyList ?? []) : searchRestaurants;
   const loading = osmMode ? nearbyLoading : isLoading;
   const fetching = osmMode ? nearbyFetching : isFetching;
+
+  const { data: favoritesList } = useFavorites(isAuth);
+  const favoriteIds = useMemo(
+    () => new Set(favoritesList?.map((f) => f.restaurantId)),
+    [favoritesList],
+  );
 
   const handleSearch = () => setActiveParams({ ...params });
 
@@ -207,6 +213,7 @@ export default function SearchPage() {
                     key={r.id}
                     restaurant={r}
                     isAuth={isAuth}
+                    isFavorite={favoriteIds.has(r.id)}
                     onSelect={() => {
                       setSelected(r);
                       setMapCenter([r.lat, r.lng]);
@@ -253,25 +260,25 @@ export default function SearchPage() {
 function SearchResultCard({
   restaurant,
   isAuth,
+  isFavorite,
   onSelect,
   onToggleFavorite,
   favoriteLoading,
 }: {
   restaurant: Restaurant;
   isAuth: boolean;
+  isFavorite: boolean;
   onSelect: () => void;
   onToggleFavorite: (id: string, isFav: boolean) => void;
   favoriteLoading: boolean;
 }) {
-  const { data: isFavorite } = useIsFavorite(restaurant.id, isAuth);
-
   return (
     <div onMouseEnter={onSelect} onFocus={onSelect}>
       <RestaurantCard
         restaurant={restaurant}
         isFavorite={isFavorite}
         onToggleFavorite={
-          isAuth ? () => onToggleFavorite(restaurant.id, !!isFavorite) : undefined
+          isAuth ? () => onToggleFavorite(restaurant.id, isFavorite) : undefined
         }
         favoriteLoading={favoriteLoading}
       />

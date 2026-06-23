@@ -65,8 +65,11 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
    npx prisma generate
    npx prisma db push
    npm run db:seed
+   npm run db:bootstrap
    npm run dev
    ```
+
+   `db:seed` crée uniquement le compte admin. `db:bootstrap` remplit PostgreSQL depuis **OpenStreetMap** (Yaoundé + Douala) et supprime les anciennes données fictives.
 
    Documentation API : [http://localhost:3000/v1/docs](http://localhost:3000/v1/docs)
 
@@ -79,21 +82,26 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
    npm run dev
    ```
 
-   Le frontend appelle l’API réelle (`VITE_USE_MOCK=false`). Pour une démo hors-ligne sans backend, définir `VITE_USE_MOCK=true` dans `frontend/.env`.
+   Le frontend appelle uniquement l’API backend (aucune donnée mock locale).
 
 4. Ouvrir [http://localhost:5173](http://localhost:5173) — l’API est sur [http://localhost:3000/v1](http://localhost:3000/v1).
 
-### Comptes de test (seed)
+### Compte admin (seed)
 
 | Email | Mot de passe | Rôle |
 |-------|--------------|------|
-| `marie@example.com` | `Password123!` | user |
 | `admin@eatnext.africa` | `Password123!` | admin |
-| `owner@eatnext.africa` | `Password123!` | owner |
+
+Les restaurants proviennent d’**OpenStreetMap** (Overpass), pas du seed. Resync automatique toutes les 24 h (`OSM_SYNC_INTERVAL_HOURS`).
 
 ## OpenStreetMap / Overpass (hybride)
 
-EatNext peut découvrir des restaurants via **Overpass API** et les **synchroniser en PostgreSQL** pour avis et favoris. Voir [docs/OSM.md](docs/OSM.md).
+EatNext alimente PostgreSQL **uniquement depuis OpenStreetMap** (Overpass API) pour les zones configurées (Yaoundé et Douala par défaut). Voir [docs/OSM.md](docs/OSM.md).
+
+```bash
+# Remplissage initial ou resync manuelle (purge les données hors OSM)
+cd backend && npm run db:bootstrap
+```
 
 Endpoints principaux :
 - `GET /v1/restaurants/osm/nearby?lat=&lng=&radius=&sync=`
@@ -107,6 +115,10 @@ Endpoints principaux :
 - **`feature/*`** — une fonctionnalité par branche ; ouvrir une PR vers `develop`
 
 Les mises à jour infra vont sur `main` ; le code applicatif passe par `develop`. Pour une release, `develop` peut être fusionnée dans `main` (optionnel, selon la politique du projet).
+
+## Déploiement Vercel
+
+Frontend et backend se déploient en **deux projets Vercel** depuis ce dépôt (dossiers `frontend/` et `backend/`). Voir [docs/VERCEL.md](docs/VERCEL.md) pour les variables d'environnement, le cron OSM et la procédure complète.
 
 ## Fichiers à ne pas committer
 

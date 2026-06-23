@@ -3,14 +3,23 @@
  *
  * Les résultats bruts sont mis en cache Redis (TTL ~10 min) pour limiter la charge
  * sur les serveurs Overpass publics et accélérer les recherches répétées.
+ *
+ * Overpass exige un User-Agent explicite (sinon HTTP 406).
  */
+import { fetch as undiciFetch, Agent } from 'undici';
 import { env } from '../config/env.js';
 import { cacheGet, cacheSet } from '../lib/redis.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { haversineKm } from '../utils/geo.js';
+import { extractPhotosFromOsmTags } from '../utils/osmPhotos.js';
 
 /** TTL du cache Redis pour les réponses Overpass (secondes). */
 const OVERPASS_CACHE_TTL = 600;
+
+/** User-Agent obligatoire pour les serveurs Overpass publics. */
+const OVERPASS_USER_AGENT =
+  process.env.OVERPASS_USER_AGENT ??
+  'EatNext/1.0 (https://github.com/Transfomers/EatNext; contact@eatnext.africa)';
 
 /** Types OSM supportés pour les restaurants / lieux de restauration. */
 export type OsmElementType = 'node' | 'way' | 'relation';
@@ -29,6 +38,7 @@ export interface OsmRestaurantDto {
   phone?: string;
   website?: string;
   osmTags: Record<string, string>;
+  photos: string[];
   distance?: number;
   source: 'OSM_SYNC';
 }
@@ -49,6 +59,37 @@ interface OverpassResponse {
 /** Filtre Overpass QL pour les POIs alimentaires (amenity + bakery). */
 const FOOD_AMENITY_REGEX = '^(restaurant|cafe|fast_food|bar|food_court|ice_cream)$';
 
+function overpassServerTimeoutSec(): number {
+  return Math.max(15, Math.floor(env.overpassTimeoutMs / 1000) - 5);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function overpassEndpoints(): string[] {
+  return [...new Set([env.overpassUrl, ...env.overpassFallbackUrls])];
+}
+
+/** Agent HTTP IPv4 — évite les échecs fetch Node quand IPv6 est indisponible. */
+const overpassDispatcher = new Agent({
+  connect: { family: 4, timeout: env.overpassTimeoutMs },
+});
+
+function formatFetchError(err: unknown): string {
+  if (err instanceof AppError) return err.message;
+  if (err instanceof Error) {
+    const cause = err.cause as NodeJS.ErrnoException | undefined;
+    const causeDetail = cause?.code ?? cause?.message;
+    const suffix = causeDetail ? ` [${causeDetail}]` : '';
+    if (err.name === 'AbortError') {
+      return `Timeout Overpass API (${env.overpassTimeoutMs / 1000}s). Réduisez le rayon ou augmentez OVERPASS_TIMEOUT_MS.`;
+    }
+    return `${err.message}${suffix}`;
+  }
+  return 'Erreur réseau inconnue';
+}
+
 /**
  * Construit la requête Overpass QL pour une recherche géographique.
  * `out center` fournit le centroïde des ways/relations.
@@ -56,8 +97,9 @@ const FOOD_AMENITY_REGEX = '^(restaurant|cafe|fast_food|bar|food_court|ice_cream
 function buildNearbyQuery(lat: number, lng: number, radiusMeters: number, limit: number): string {
   const r = Math.min(Math.max(radiusMeters, 100), 50000);
   const lim = Math.min(Math.max(limit, 1), 200);
+  const timeout = overpassServerTimeoutSec();
   return `
-[out:json][timeout:15];
+[out:json][timeout:${timeout}];
 (
   node["amenity"~"${FOOD_AMENITY_REGEX}"](around:${r},${lat},${lng});
   way["amenity"~"${FOOD_AMENITY_REGEX}"](around:${r},${lat},${lng});
@@ -76,9 +118,10 @@ function buildByIdQuery(osmType: OsmElementType, osmId: string): string {
 
   const prefix =
     osmType === 'node' ? 'node' : osmType === 'way' ? 'way' : 'relation';
+  const timeout = overpassServerTimeoutSec();
 
   return `
-[out:json][timeout:15];
+[out:json][timeout:${timeout}];
 ${prefix}(${id});
 out center;
 `.trim();
@@ -146,6 +189,7 @@ function elementToDto(
     phone: tags.phone ?? tags['contact:phone'],
     website: tags.website ?? tags['contact:website'],
     osmTags: tags,
+    photos: extractPhotosFromOsmTags(tags),
     source: 'OSM_SYNC',
   };
 
@@ -157,41 +201,75 @@ function elementToDto(
 }
 
 /**
- * Exécute une requête Overpass avec timeout et gestion d'erreurs HTTP.
- * Les erreurs réseau ou timeouts sont remontées comme AppError 503.
+ * Exécute une requête Overpass sur un endpoint avec timeout et User-Agent.
  */
-async function executeOverpass(query: string): Promise<OverpassResponse> {
+async function executeOverpassOnUrl(url: string, query: string): Promise<OverpassResponse> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.overpassTimeoutMs);
 
   try {
-    const response = await fetch(env.overpassUrl, {
+    const response = await undiciFetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': OVERPASS_USER_AGENT,
+        Accept: 'application/json',
+      },
       body: `data=${encodeURIComponent(query)}`,
       signal: controller.signal,
+      dispatcher: overpassDispatcher,
     });
 
+    const bodyText = await response.text();
+
     if (!response.ok) {
-      const body = await response.text().catch(() => '');
       throw new AppError(
         'OVERPASS_ERROR',
-        `Overpass API a répondu ${response.status}: ${body.slice(0, 200)}`,
+        `Overpass (${url}) HTTP ${response.status}: ${bodyText.slice(0, 200)}`,
         503,
       );
     }
 
-    return (await response.json()) as OverpassResponse;
-  } catch (err) {
-    if (err instanceof AppError) throw err;
-    const message =
-      err instanceof Error && err.name === 'AbortError'
-        ? 'Timeout Overpass API (15s). Réessayez avec un rayon plus petit.'
-        : 'Impossible de joindre Overpass API.';
-    throw new AppError('OVERPASS_UNAVAILABLE', message, 503);
+    try {
+      return JSON.parse(bodyText) as OverpassResponse;
+    } catch {
+      throw new AppError(
+        'OVERPASS_ERROR',
+        `Réponse Overpass invalide (${url}): ${bodyText.slice(0, 200)}`,
+        503,
+      );
+    }
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * Exécute une requête Overpass avec retries et miroirs de secours.
+ */
+async function executeOverpass(query: string): Promise<OverpassResponse> {
+  const endpoints = overpassEndpoints();
+  const errors: string[] = [];
+
+  for (const url of endpoints) {
+    for (let attempt = 1; attempt <= env.overpassMaxRetries; attempt++) {
+      try {
+        return await executeOverpassOnUrl(url, query);
+      } catch (err) {
+        const msg = formatFetchError(err);
+        errors.push(`${url} (tentative ${attempt}): ${msg}`);
+        if (attempt < env.overpassMaxRetries) {
+          await sleep(1500 * attempt);
+        }
+      }
+    }
+  }
+
+  throw new AppError(
+    'OVERPASS_UNAVAILABLE',
+    `Impossible de joindre Overpass API. ${errors.join(' | ')}`,
+    503,
+  );
 }
 
 /**

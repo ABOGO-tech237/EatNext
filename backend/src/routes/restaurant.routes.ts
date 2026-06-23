@@ -139,6 +139,25 @@ router.get('/nearby', async (req, res, next) => {
 
 /**
  * @openapi
+ * /restaurants/stats:
+ *   get:
+ *     tags: [Restaurants]
+ *     summary: Statistiques publiques (compteurs réels en base)
+ *     responses:
+ *       200:
+ *         description: Nombre de restaurants, avis et villes couvertes.
+ */
+router.get('/stats', async (_req, res, next) => {
+  try {
+    const stats = await restaurantService.getPublicStats();
+    sendSuccess(res, stats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @openapi
  * /restaurants/osm/nearby:
  *   get:
  *     tags: [Restaurants]
@@ -610,9 +629,8 @@ router.post('/:id/photos', authenticate, validateBody(z.object({ photos: z.array
  */
 router.get('/:id/menu', async (req, res, next) => {
   try {
-    // Le menu n'est pas encore modélisé en base : on renvoie le restaurant et un tableau vide.
-    const restaurant = await restaurantService.getRestaurantById(req.params.id);
-    sendSuccess(res, { restaurantId: restaurant.id, items: [] });
+    const menu = await restaurantService.getRestaurantMenu(req.params.id);
+    sendSuccess(res, menu);
   } catch (err) {
     next(err);
   }
@@ -652,14 +670,26 @@ router.get('/:id/menu', async (req, res, next) => {
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
-router.put('/:id/menu', authenticate, validateBody(z.object({ items: z.array(z.object({ name: z.string(), price: z.number() })).optional() })), async (req, res, next) => {
+const menuSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        price: z.number().positive(),
+        description: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+router.put('/:id/menu', authenticate, validateBody(menuSchema), async (req, res, next) => {
   try {
     const restaurant = await restaurantService.getRestaurantById(req.params.id);
     if (req.user!.role !== 'admin' && restaurant.ownerId !== req.user!.sub) {
       return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Accès refusé', status: 403 } });
     }
-    // Le menu n'étant pas persisté en base pour le moment, on renvoie l'écho de l'entrée.
-    sendSuccess(res, { restaurantId: restaurant.id, items: req.body.items ?? [] });
+    const menu = await restaurantService.replaceRestaurantMenu(req.params.id, req.body.items ?? []);
+    sendSuccess(res, menu);
   } catch (err) {
     next(err);
   }
