@@ -38,6 +38,7 @@ export interface Restaurant {
   openingHours?: string | null;
   phone?: string | null;
   website?: string | null;
+  owner?: { id: string; fullName: string; email?: string } | null;
   /** Distance en mètres — renvoyée par la recherche géographique. */
   distance?: number;
 }
@@ -47,6 +48,7 @@ export interface Review {
   rating: number;
   content?: string | null;
   photos?: string[];
+  ownerReply?: string | null;
   createdAt: string;
   user?: { id: string; fullName: string };
 }

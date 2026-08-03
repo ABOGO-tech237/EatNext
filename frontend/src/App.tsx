@@ -9,6 +9,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import FavoritesPage from './pages/FavoritesPage';
 import ProfilePage from './pages/ProfilePage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import TermsPage from './pages/TermsPage';
 
 /**
  * Routage principal de l'application EatNext.
@@ -25,6 +28,9 @@ export default function App() {
           <Route path="osm/:osmType/:osmId" element={<OsmRestaurantPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="a-propos" element={<AboutPage />} />
+          <Route path="contact" element={<ContactPage />} />
+          <Route path="cgu" element={<TermsPage />} />
           <Route
             path="favorites"
             element={

@@ -8,7 +8,6 @@ export const restaurantKeys = {
   stats: () => [...restaurantKeys.all, 'stats'] as const,
   search: (params: SearchParams) => [...restaurantKeys.all, 'search', params] as const,
   detail: (id: string) => [...restaurantKeys.all, 'detail', id] as const,
-  reviews: (id: string) => [...restaurantKeys.all, 'reviews', id] as const,
   nearby: (lat: number, lng: number, includeOsm: boolean) =>
     [...restaurantKeys.all, 'nearby', lat, lng, includeOsm] as const,
 };
@@ -37,28 +36,6 @@ export function useRestaurant(id: string | undefined) {
     queryKey: restaurantKeys.detail(id ?? ''),
     queryFn: () => restaurantApi.getRestaurant(id!),
     enabled: !!id,
-  });
-}
-
-/** Hook pour les avis d'un restaurant. */
-export function useRestaurantReviews(restaurantId: string | undefined) {
-  return useQuery({
-    queryKey: restaurantKeys.reviews(restaurantId ?? ''),
-    queryFn: () => restaurantApi.getRestaurantReviews(restaurantId!),
-    enabled: !!restaurantId,
-  });
-}
-
-/** Mutation pour publier un avis — invalide le cache des avis et du restaurant. */
-export function useCreateReview(restaurantId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: { rating: number; content?: string }) =>
-      restaurantApi.createReview(restaurantId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: restaurantKeys.reviews(restaurantId) });
-      queryClient.invalidateQueries({ queryKey: restaurantKeys.detail(restaurantId) });
-    },
   });
 }
 

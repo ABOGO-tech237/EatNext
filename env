@@ -1,0 +1,48 @@
+# Application
+NODE_ENV=development
+PORT=3000
+APP_URL=http://localhost:3000
+CLIENT_URL=http://localhost:5173
+
+# Database
+DATABASE_URL=postgresql://eatnext:eatnext@localhost:5432/eatnext
+POSTGRES_URL="postgres://40d6e3be6778c06c1adf886788a68737f33767960dd89c1655c094cc219921ab:sk_i2JASfpT5XsguYpu6Di55@db.prisma.io:5432/postgres?sslmode=require"
+PRISMA_DATABASE_URL="postgres://40d6e3be6778c06c1adf886788a68737f33767960dd89c1655c094cc219921ab:sk_i2JASfpT5XsguYpu6Di55@db.prisma.io:5432/postgres?sslmode=require"
+# JWT
+JWT_SECRET=b429730571b8fa96f10a526231843e632179a18e5c5a5bdec7f41f046a534c54
+JWT_EXPIRES_IN=3600
+REFRESH_TOKEN_SECRET=c5bf86c13a8c497b3daef6eb3916acb043c913abe7c02128b46c3b90b547be41
+REFRESH_TOKEN_EXPIRES_IN=604800
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=eatnext
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=http://localhost:3000/api/v1/auth/google/callback
+
+# Email (SMTP)
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=
+EMAIL_FROM=noreply@eatnext.africa
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
+
+# OpenStreetMap / Overpass API
+OVERPASS_URL=https://overpass-api.de/api/interpreter
+OVERPASS_FALLBACK_URLS=https://overpass.kumi.systems/api/interpreter
+OVERPASS_TIMEOUT_MS=60000
+OVERPASS_MAX_RETRIES=3
+OVERPASS_USER_AGENT=EatNext/1.0 (dev@eatnext.africa)
+OSM_SYNC_ON_START=true
+OSM_SYNC_INTERVAL_HOURS=24

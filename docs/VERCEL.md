@@ -1,100 +1,192 @@
-# Déploiement Vercel — EatNext
+# Déploiement Vercel — EatNext (CLI, plan Free)
 
-Ce monorepo se déploie en **deux projets Vercel** liés au même dépôt GitHub. Chaque push sur `main` redéploie automatiquement le frontend et le backend.
+Deux projets Vercel depuis le **même dépôt GitHub**, déployés entièrement en **CLI**. Le plan **Hobby (gratuit)** suffit pour les deux.
 
-| Projet Vercel | Dossier racine | URL type |
-|---------------|----------------|----------|
-| **eatnext** (frontend) | `frontend` | `https://eatnext.vercel.app` |
-| **eatnext-api** (backend) | `backend` | `https://eatnext-api.vercel.app` |
+| Projet | Dossier | Commande |
+|--------|---------|----------|
+| **eatnext-api** | `backend/` | `cd backend && vercel --prod` |
+| **eatnext** | `frontend/` | `cd frontend && vercel --prod` |
 
-## Prérequis
-
-1. Dépôt GitHub : [ABOGO-tech237/EatNext](https://github.com/ABOGO-tech237/EatNext)
-2. Base PostgreSQL hébergée (Neon, Supabase, Vercel Postgres, etc.)
-3. Redis optionnel (Upstash Redis recommandé ; le backend fonctionne sans cache)
-4. Compte [Vercel](https://vercel.com) connecté à GitHub
-
-## 1. Projet backend (`eatnext-api`)
-
-Dans Vercel : **Add New → Project → Import** le dépôt, puis :
-
-- **Root Directory** : `backend`
-- **Framework Preset** : Other
-- Les fichiers `backend/vercel.json` et `backend/api/index.ts` configurent Express en serverless.
-
-### Variables d'environnement (backend)
-
-| Variable | Obligatoire | Description |
-|----------|-------------|-------------|
-| `DATABASE_URL` | oui | PostgreSQL (ex. Neon) |
-| `JWT_SECRET` | oui | Secret JWT (256 bits) |
-| `REFRESH_TOKEN_SECRET` | oui | Secret refresh token |
-| `CLIENT_URL` | oui | URL du frontend Vercel (CORS) |
-| `APP_URL` | oui | URL publique de l'API |
-| `NODE_ENV` | oui | `production` |
-| `OSM_SYNC_ON_START` | non | `false` en prod serverless |
-| `OSM_SYNC_INTERVAL_HOURS` | non | `0` (utiliser le cron Vercel) |
-| `CRON_SECRET` | recommandé | Secret pour `/api/cron/osm-sync` |
-| `REDIS_URL` | non | Upstash ou autre Redis |
-| `JWT_EXPIRES_IN` | non | `3600` |
-| `REFRESH_TOKEN_EXPIRES_IN` | non | `604800` |
-
-Après le premier déploiement, exécuter le seed une fois (local ou script) :
-
-```bash
-cd backend
-DATABASE_URL="..." npm run prisma:deploy
-DATABASE_URL="..." npm run db:seed
-DATABASE_URL="..." npm run db:bootstrap
-```
-
-## 2. Projet frontend (`eatnext`)
-
-- **Root Directory** : `frontend`
-- **Framework Preset** : Vite (auto-détecté)
-
-### Variables d'environnement (frontend)
-
-| Variable | Valeur |
-|----------|--------|
-| `VITE_API_URL` | `https://<votre-backend>.vercel.app/v1` |
-
-## 3. Lier les deux projets
-
-1. Déployer d'abord le **backend**, noter son URL.
-2. Déployer le **frontend** avec `VITE_API_URL` pointant vers le backend.
-3. Mettre à jour `CLIENT_URL` sur le backend avec l'URL du frontend.
-4. Redéployer les deux projets si besoin.
-
-## 4. Cron OSM (backend)
-
-`backend/vercel.json` définit un cron quotidien (03:00 UTC) sur `/api/cron/osm-sync`.  
-Définir `CRON_SECRET` dans Vercel ; Vercel envoie `Authorization: Bearer <CRON_SECRET>` automatiquement.
-
-## 5. Vérification
-
-- Backend : `GET https://<api>/health` → `{ "success": true, ... }`
-- Backend : `GET https://<api>/v1/docs` → Swagger UI
-- Frontend : ouvrir l'URL Vercel du projet frontend
-
-## CLI (optionnel)
+## 0. Installation (une fois)
 
 ```bash
 npm i -g vercel
+# ou sans installation globale :
+# npx vercel@latest <commande>
+```
 
-# Backend
-cd backend && vercel link
-vercel env pull .env.local
-vercel --prod
+Connexion au compte Vercel (ouvre le navigateur) :
 
-# Frontend
-cd frontend && vercel link
-vercel env add VITE_API_URL
+```bash
+vercel login
+vercel whoami   # doit afficher votre compte
+```
+
+## 1. Backend — `eatnext-api`
+
+```bash
+cd backend
+vercel link
+```
+
+Réponses suggérées à `vercel link` :
+
+- **Set up and deploy?** → `N` (on configure d'abord les variables)
+- **Which scope?** → votre compte perso ou équipe
+- **Link to existing project?** → `N`
+- **Project name** → `eatnext-api`
+- **In which directory is your code?** → `./` (vous êtes déjà dans `backend/`)
+
+### Variables d'environnement (backend)
+
+Remplacer les valeurs entre `<…>` avant de coller. Chaque commande demande la valeur puis l'environnement → choisir **Production** (et **Preview** si vous voulez).
+
+```bash
+vercel env add DATABASE_URL production
+vercel env add JWT_SECRET production
+vercel env add REFRESH_TOKEN_SECRET production
+vercel env add NODE_ENV production          # valeur : production
+vercel env add APP_URL production           # temporaire : https://eatnext-api.vercel.app
+vercel env add CLIENT_URL production        # temporaire : https://eatnext.vercel.app
+vercel env add OSM_SYNC_ON_START production # valeur : false
+vercel env add OSM_SYNC_INTERVAL_HOURS production  # valeur : 0
+vercel env add CRON_SECRET production       # long secret aléatoire
+```
+
+Optionnel :
+
+```bash
+vercel env add REDIS_URL production         # Upstash Redis (gratuit)
+vercel env add JWT_EXPIRES_IN production    # 3600
+vercel env add REFRESH_TOKEN_EXPIRES_IN production  # 604800
+```
+
+### Premier déploiement backend
+
+```bash
 vercel --prod
 ```
 
+Noter l'URL affichée, ex. `https://eatnext-api.vercel.app`.
+
+Vérifier :
+
+```bash
+curl https://eatnext-api.vercel.app/health
+```
+
+### Base de données (une fois)
+
+Avec une base PostgreSQL hébergée (Neon, Supabase, Vercel Postgres…) :
+
+```bash
+# depuis backend/, avec la même DATABASE_URL que sur Vercel
+export DATABASE_URL="postgresql://..."
+npm run prisma:deploy
+npm run db:seed
+npm run db:bootstrap
+```
+
+### Lier GitHub (auto-deploy à chaque push)
+
+Depuis la racine du dépôt ou `backend/` :
+
+```bash
+vercel git connect
+```
+
+Choisir le dépôt **ABOGO-tech237/EatNext**. Vercel redéploie automatiquement à chaque push sur `main`.
+
+> Dans le dashboard Vercel, vérifier que le **Root Directory** du projet `eatnext-api` est bien `backend`.
+
+---
+
+## 2. Frontend — `eatnext`
+
+```bash
+cd frontend
+vercel link
+```
+
+- **Project name** → `eatnext`
+- **Directory** → `./`
+
+```bash
+vercel env add VITE_API_URL production
+# valeur : https://eatnext-api.vercel.app/v1  (URL réelle du backend)
+```
+
+```bash
+vercel --prod
+```
+
+Noter l'URL, ex. `https://eatnext.vercel.app`.
+
+---
+
+## 3. Relier frontend ↔ backend (CORS)
+
+Mettre à jour `CLIENT_URL` sur le backend avec l'URL réelle du frontend :
+
+```bash
+cd backend
+vercel env rm CLIENT_URL production
+vercel env add CLIENT_URL production   # https://eatnext.vercel.app
+vercel env rm APP_URL production
+vercel env add APP_URL production      # https://eatnext-api.vercel.app
+vercel --prod
+```
+
+---
+
+## 4. Commandes utiles au quotidien
+
+```bash
+# Redéployer en prod
+cd backend  && vercel --prod
+cd frontend && vercel --prod
+
+# Prévisualiser une branche (preview URL gratuite)
+vercel
+
+# Voir les logs
+vercel logs eatnext-api --prod
+vercel logs eatnext --prod
+
+# Lister les variables
+vercel env ls
+
+# Télécharger les vars en local (backend)
+cd backend && vercel env pull .env.local
+```
+
+---
+
+## 5. Cron OSM (backend, plan Pro requis pour cron)
+
+`backend/vercel.json` déclare un cron quotidien sur `/api/cron/osm-sync`.  
+Sur le **plan Free**, les crons Vercel ne tournent pas — lancez la sync manuellement :
+
+```bash
+curl -X POST https://eatnext-api.vercel.app/v1/restaurants/osm/sync \
+  -H "Content-Type: application/json" \
+  -d '{"lat":3.8667,"lng":11.5167,"radius":8000,"limit":150}'
+```
+
+Ou appelez `/api/cron/osm-sync` avec `Authorization: Bearer <CRON_SECRET>` depuis un cron externe (GitHub Actions, cron-job.org…).
+
+---
+
+## 6. Checklist finale
+
+- [ ] `GET https://<api>/health` → `{ "success": true }`
+- [ ] `GET https://<api>/v1/docs` → Swagger
+- [ ] Frontend charge et appelle l'API (pas d'erreur CORS)
+- [ ] `vercel git connect` sur les deux projets (optionnel mais pratique)
+
 ## Notes
 
-- Le scheduler `setInterval` du backend est désactivé en serverless ; seul le cron Vercel resynchronise OSM.
-- Les migrations Prisma s'exécutent au build (`prisma migrate deploy`) si `DATABASE_URL` est configurée.
+- Les dossiers `.vercel/` sont locaux (lien projet) — ne pas les committer.
+- Le scheduler `setInterval` du backend est inactif en serverless ; pas de sync OSM au démarrage en prod (`OSM_SYNC_ON_START=false`).
+- Les migrations Prisma s'exécutent au build si `DATABASE_URL` est définie.
 - Ne commitez jamais de fichiers `.env` contenant des secrets.

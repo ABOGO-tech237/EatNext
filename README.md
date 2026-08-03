@@ -65,11 +65,13 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
    npx prisma generate
    npx prisma db push
    npm run db:seed
-   npm run db:bootstrap
+   npm run db:import-ayilaa -- --fallback-centroid
    npm run dev
    ```
 
-   `db:seed` crée uniquement le compte admin. `db:bootstrap` remplit PostgreSQL depuis **OpenStreetMap** (Yaoundé + Douala) et supprime les anciennes données fictives.
+   `db:seed` crée le compte admin. `db:import-ayilaa` importe les restaurants depuis [`ayilaa_data.jsonl`](ayilaa_data.jsonl) (géocodage Nominatim, ~20 min pour ~1 150 établissements).
+
+   Alternative OSM : `npm run db:bootstrap` (voir [docs/OSM.md](docs/OSM.md)).
 
    Documentation API : [http://localhost:3000/v1/docs](http://localhost:3000/v1/docs)
 
@@ -92,7 +94,21 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
 |-------|--------------|------|
 | `admin@eatnext.africa` | `Password123!` | admin |
 
-Les restaurants proviennent d’**OpenStreetMap** (Overpass), pas du seed. Resync automatique toutes les 24 h (`OSM_SYNC_INTERVAL_HOURS`).
+Les restaurants proviennent du fichier **Ayilaa** (`db:import-ayilaa`) ou d'**OpenStreetMap** (`db:bootstrap`).
+
+## Données Ayilaa
+
+Fichier source : [`ayilaa_data.jsonl`](ayilaa_data.jsonl) (~1 150 restaurants au Cameroun).
+
+```bash
+cd backend
+npm run db:import-ayilaa -- --fallback-centroid   # purge + import + géocodage
+npm run db:import-ayilaa -- --no-purge --limit 10  # test sur 10 lignes
+```
+
+Options : `--fallback-centroid`, `--no-purge`, `--limit N`, `--file chemin.jsonl`.
+
+Pour une base Ayilaa uniquement : `OSM_SYNC_ON_START=false` dans `backend/.env`.
 
 ## OpenStreetMap / Overpass (hybride)
 
@@ -118,7 +134,7 @@ Les mises à jour infra vont sur `main` ; le code applicatif passe par `develop`
 
 ## Déploiement Vercel
 
-Frontend et backend se déploient en **deux projets Vercel** depuis ce dépôt (dossiers `frontend/` et `backend/`). Voir [docs/VERCEL.md](docs/VERCEL.md) pour les variables d'environnement, le cron OSM et la procédure complète.
+Frontend et backend se déploient en **deux projets Vercel** (plan Free) via la CLI. Voir [docs/VERCEL.md](docs/VERCEL.md) — guide pas à pas avec `vercel link`, `vercel env add` et `vercel --prod`.
 
 ## Fichiers à ne pas committer
 

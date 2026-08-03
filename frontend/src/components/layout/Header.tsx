@@ -1,5 +1,5 @@
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Heart, Home, LogOut, Menu, Search, User, UtensilsCrossed, X } from 'lucide-react';
+import { Heart, Home, Info, LogOut, Menu, MessageCircle, Search, User, UtensilsCrossed, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useAuthStore, useIsAuthenticated } from '../../stores/authStore';
 import { useAuthActions } from '../../hooks/useAuth';
@@ -9,15 +9,17 @@ import { cn } from '../../lib/utils';
 const navLinks = [
   { to: '/', label: 'Accueil', icon: Home, end: true },
   { to: '/search', label: 'Recherche', icon: Search },
+  { to: '/a-propos', label: 'À propos', icon: Info },
+  { to: '/contact', label: 'Contact', icon: MessageCircle },
   { to: '/favorites', label: 'Favoris', icon: Heart, protected: true },
 ];
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors duration-150',
+    'flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200',
     isActive
-      ? 'bg-brand-50 text-brand-700 shadow-sm ring-1 ring-brand-100/80'
-      : 'text-ink-600 hover:bg-ink-50 hover:text-ink-900',
+      ? 'bg-white/90 text-brand-700 shadow-sm ring-1 ring-brand-200/80 backdrop-blur-sm'
+      : 'text-ink-600 hover:bg-white/60 hover:text-ink-900 hover:shadow-sm hover:backdrop-blur-sm',
   );
 
 const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -68,33 +70,69 @@ export function Header() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 border-b transition-[box-shadow,background-color,border-color] duration-200',
-        scrolled
-          ? 'border-ink-100/80 bg-white/95 shadow-md backdrop-blur-lg'
-          : 'border-transparent bg-white/90 shadow-sm backdrop-blur-md',
+        'sticky top-0 z-50 isolate transition-[box-shadow] duration-300',
+        scrolled ? 'shadow-lg shadow-ink-900/[0.06]' : 'shadow-md shadow-brand-900/10',
       )}
     >
+      {/* Fond décoratif — halos chauds brand */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <div
+          className={cn(
+            'absolute -left-20 -top-24 h-44 w-80 rounded-full bg-brand-400/30 blur-3xl transition-opacity duration-500',
+            scrolled ? 'opacity-25' : 'opacity-70',
+          )}
+        />
+        <div
+          className={cn(
+            'absolute -right-16 -top-20 h-40 w-64 rounded-full bg-brand-600/25 blur-3xl transition-opacity duration-500',
+            scrolled ? 'opacity-15' : 'opacity-55',
+          )}
+        />
+        <div
+          className={cn(
+            'absolute left-1/2 top-0 h-28 w-[28rem] -translate-x-1/2 rounded-full bg-brand-300/20 blur-3xl transition-opacity duration-500',
+            scrolled ? 'opacity-0' : 'opacity-50',
+          )}
+        />
+      </div>
+
+      {/* Surface glassmorphism */}
       <div
-        className="h-0.5 w-full bg-gradient-to-r from-brand-400 via-brand-600 to-brand-400"
+        className={cn(
+          'absolute inset-0 border-b transition-all duration-300',
+          scrolled
+            ? 'border-ink-100/90 bg-white/[0.94] backdrop-blur-xl backdrop-saturate-150'
+            : 'border-white/30 bg-gradient-to-b from-white/95 via-white/[0.88] to-white/75 backdrop-blur-lg backdrop-saturate-125',
+        )}
         aria-hidden
       />
 
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      {/* Bandeau accent dégradé */}
+      <div
+        className="relative h-1 w-full bg-gradient-to-r from-brand-400 via-brand-600 to-brand-500"
+        aria-hidden
+      />
+      <div
+        className="relative h-px w-full bg-gradient-to-r from-transparent via-brand-300/60 to-transparent"
+        aria-hidden
+      />
+
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="group flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm ring-1 ring-brand-600/20 transition-transform duration-200 group-hover:scale-105">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md shadow-brand-600/25 ring-1 ring-white/20 transition-transform duration-200 group-hover:scale-105">
             <UtensilsCrossed className="h-4 w-4" aria-hidden />
           </span>
           <span className="flex flex-col leading-none">
             <span className="text-lg font-bold tracking-tight text-ink-900 transition-colors duration-150 group-hover:text-brand-700">
               EatNext
             </span>
-            <span className="hidden text-[10px] font-medium uppercase tracking-widest text-ink-400 sm:block">
+            <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-600/80 sm:block">
               Cameroun
             </span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-0.5 md:flex" aria-label="Navigation principale">
+        <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Navigation principale">
           {visibleLinks.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={navLinkClass}>
               <Icon className="h-4 w-4" aria-hidden />
@@ -109,14 +147,14 @@ export function Header() {
           )}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           {isAuth ? (
             <>
               <Link
                 to="/profile"
-                className="hidden items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-ink-50 lg:flex"
+                className="hidden items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/60 xl:flex"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700 ring-2 ring-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-100 to-brand-200 text-xs font-semibold text-brand-700 ring-2 ring-white shadow-sm">
                   {userInitial}
                 </span>
                 <span className="max-w-[120px] truncate text-sm text-ink-600">{user?.fullName}</span>
@@ -145,7 +183,7 @@ export function Header() {
 
         <button
           type="button"
-          className="rounded-xl p-2 text-ink-600 transition-colors hover:bg-ink-100 md:hidden"
+          className="rounded-xl p-2 text-ink-600 transition-colors hover:bg-white/70 hover:shadow-sm lg:hidden"
           onClick={() => setMobileOpen((open) => !open)}
           aria-expanded={mobileOpen}
           aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
@@ -158,11 +196,11 @@ export function Header() {
         <>
           <button
             type="button"
-            className="fixed inset-0 top-[4.125rem] z-40 bg-ink-900/20 md:hidden"
+            className="fixed inset-0 top-[4.25rem] z-40 bg-ink-900/25 backdrop-blur-[2px] lg:hidden"
             onClick={closeMobile}
             aria-label="Fermer le menu"
           />
-          <div className="relative z-50 border-t border-ink-100 bg-white animate-slide-down md:hidden">
+          <div className="relative z-50 border-t border-ink-100/80 bg-white/95 shadow-lg backdrop-blur-xl animate-slide-down lg:hidden">
             <div className="px-4 py-4">
               <nav className="space-y-1" aria-label="Navigation mobile">
                 {visibleLinks.map(({ to, label, icon: Icon, end }) => (

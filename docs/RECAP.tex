@@ -1,9 +1,10 @@
 % Optional compilation: pdflatex docs/RECAP.tex
 \documentclass[11pt,a4paper]{article}
 \usepackage[T1]{fontenc}
-\usepackage[english]{babel}
+\usepackage[french,english]{babel}
 \usepackage{hyperref}
 \usepackage{booktabs}
+\usepackage{amssymb}
 \usepackage{geometry}
 \usepackage{listings}
 \geometry{margin=2.5cm}
@@ -76,6 +77,7 @@ eatnext/
 │       └── stores/             # Zustand auth store
 └── docs/
     ├── OSM.md                  # OSM/Overpass strategy
+    ├── VERCEL.md               # Déploiement CLI (plan Free)
     └── RECAP.tex               # This document
 \end{verbatim}
 
@@ -448,14 +450,121 @@ All responses follow a standard envelope: \texttt{\{ success, data, meta?, error
 \toprule
 \textbf{Branch} & \textbf{Purpose} \\
 \midrule
-\texttt{main} & Infrastructure only (Docker, Prisma schema, scaffolds) \\
-\texttt{develop} & Integration branch --- current full application \\
+\texttt{main} & Production --- application complète + config Vercel \\
+\texttt{develop} & Integration branch \\
 \texttt{feature/*} & One feature per branch $\rightarrow$ PR to \texttt{develop} \\
 \bottomrule
 \end{tabular}
 
 \vspace{0.5em}
-\noindent Remote: \url{git@github.com:Transfomers/EatNext.git}
+\noindent Remote principal:
+\url{git@github.com:ABOGO-tech237/EatNext.git}
+
+\noindent Remote historique (conservé localement):
+\url{git@github.com:Transfomers/EatNext.git} (\texttt{transfomers})
+
+%----------------------------------------------------------------------
+\section{Récapitulatif déploiement --- juin 2026}
+\label{sec:deploy-recap}
+%----------------------------------------------------------------------
+
+\subsection{GitHub}
+
+\begin{itemize}
+  \item Dépôt poussé sur \textbf{ABOGO-tech237/EatNext}, branche \texttt{main}.
+  \item Fusion \texttt{develop} $\rightarrow$ \texttt{main} effectuée avant le push.
+  \item Commit principal : OSM bootstrap, intégration API, configuration Vercel.
+\end{itemize}
+
+\subsection{Configuration Vercel (monorepo)}
+
+Deux projets Vercel depuis le \emph{même} dépôt GitHub~; chaque push sur \texttt{main}
+peut redéployer les deux (via \texttt{vercel git connect}).
+
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Projet} & \textbf{Racine} & \textbf{Fichiers clés} \\
+\midrule
+\texttt{eatnext-api} & \texttt{backend/} &
+  \texttt{vercel.json}, \texttt{api/index.ts}, \texttt{api/cron/osm-sync.ts} \\
+\texttt{eatnext} & \texttt{frontend/} &
+  \texttt{vercel.json} (Vite, SPA React Router) \\
+\bottomrule
+\end{tabular}
+
+\paragraph{Backend serverless.}
+\texttt{backend/api/index.ts} instancie \texttt{createApp()} (Express) pour Vercel
+Functions~; Prisma et Redis (optionnel) s'initialisent au cold start.
+
+\paragraph{Cron OSM.}
+\texttt{backend/api/cron/osm-sync.ts} + entrée cron dans \texttt{vercel.json}
+(03:00 UTC). Sur le plan \textbf{Hobby (gratuit)}, les crons Vercel natifs
+nécessitent le plan Pro~; sync manuelle via
+\texttt{POST /v1/restaurants/osm/sync} ou cron externe.
+
+\paragraph{Variables d'environnement backend.}
+\texttt{DATABASE\_URL}, \texttt{JWT\_SECRET}, \texttt{REFRESH\_TOKEN\_SECRET},
+\texttt{CLIENT\_URL}, \texttt{APP\_URL}, \texttt{NODE\_ENV=production},
+\texttt{OSM\_SYNC\_ON\_START=false}, \texttt{OSM\_SYNC\_INTERVAL\_HOURS=0},
+\texttt{CRON\_SECRET} (recommandé).
+
+\paragraph{Variables frontend.}
+\texttt{VITE\_API\_URL=https://<api>.vercel.app/v1}.
+
+Documentation détaillée~: \texttt{docs/VERCEL.md}.
+
+\subsection{CLI et script de déploiement}
+
+\begin{itemize}
+  \item Vercel CLI v54.15.1 installée localement dans \texttt{backend/node\_modules}.
+  \item Compte connecté~: \texttt{abogo-tech237} (\texttt{vercel login}).
+  \item Script tout-en-un~: \texttt{scripts/deploy-vercel.sh}
+        (migrations, seed, bootstrap OSM, env Vercel, \texttt{vercel --prod}).
+\end{itemize}
+
+\begin{lstlisting}[language=bash]
+cd backend && ./node_modules/.bin/vercel login
+cd .. && ./scripts/deploy-vercel.sh
+\end{lstlisting}
+
+\subsection{Base de données production}
+
+PostgreSQL hébergé via \textbf{Prisma Postgres} (\texttt{db.prisma.io}).
+Fichier local \texttt{backend/.env} (gitignored) --- ne jamais committer.
+
+\subsection{État du déploiement (session juin 2026)}
+
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Étape} & \textbf{Statut} \\
+\midrule
+Push GitHub \texttt{main} & \checkmark\ Terminé \\
+Config Vercel dans le code & \checkmark\ Terminé \\
+Connexion Vercel CLI & \checkmark\ Terminé (\texttt{abogo-tech237}) \\
+Migrations Prisma & $\times$ Bloqué --- migration \texttt{20250622120000\_add\_osm\_fields} en échec (\texttt{P3009}) \\
+Deploy backend + frontend & $\times$ En attente (après migrations) \\
+\bottomrule
+\end{tabular}
+
+\paragraph{Résolution migration bloquée.}
+\begin{lstlisting}[language=bash]
+cd backend
+npx prisma migrate resolve --rolled-back 20250622120000_add_osm_fields
+npx prisma migrate deploy
+cd .. && ./scripts/deploy-vercel.sh
+\end{lstlisting}
+
+\paragraph{Sécurité.}
+Les identifiants PostgreSQL ont été exposés en clair dans le chat~;
+régénérer le mot de passe dans le dashboard Prisma et mettre à jour
+\texttt{backend/.env} + variables Vercel.
+
+\subsection{Fichiers modifiés non commités (post-session)}
+
+\begin{itemize}
+  \item \texttt{backend/package.json}, \texttt{backend/package-lock.json} (dépendance \texttt{vercel} CLI).
+  \item \texttt{scripts/deploy-vercel.sh}.
+\end{itemize}
 
 %----------------------------------------------------------------------
 \section{How to Run Locally}
@@ -506,7 +615,7 @@ Health & \url{http://localhost:3000/health} \\
   \item Cloudinary photo upload wired in dependencies but not fully integrated in UI.
   \item Google OAuth (\texttt{googleId} field exists; flow not implemented).
   \item Email notifications (Nodemailer dependency present; not configured).
-  \item Production deployment, CI/CD, and cloud hosting (STA target: 99.9\,\% uptime).
+  \item Finaliser le déploiement Vercel (Section~\ref{sec:deploy-recap})~: migrations, seed prod, CORS frontend/backend.
   \item End-to-end OSM sync testing with internet access to public Overpass servers.
 \end{itemize}
 

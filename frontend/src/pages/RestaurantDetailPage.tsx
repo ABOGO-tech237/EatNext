@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useRestaurant, useRestaurantReviews, useCreateReview } from '../hooks/useRestaurants';
+import { useRestaurant } from '../hooks/useRestaurants';
+import { useRestaurantReviews, useCreateReview } from '../hooks/useReviews';
 import { useIsFavorite, useToggleFavorite } from '../hooks/useFavorites';
 import { useIsAuthenticated } from '../stores/authStore';
 import { RestaurantMap } from '../components/restaurant/RestaurantMap';
@@ -47,7 +48,7 @@ export default function RestaurantDetailPage() {
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createReview.mutateAsync({ rating, content: content || undefined });
+      await createReview.mutateAsync({ rating, content });
       toast.success('Avis publié !');
       setContent('');
       setRating(5);

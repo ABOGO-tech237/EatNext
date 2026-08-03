@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { ApiResponse, PaginationMeta, Restaurant, Review, SearchParams } from '../../types';
+import type { ApiResponse, PaginationMeta, Restaurant, SearchParams } from '../../types';
 
 export interface PublicStats {
   restaurants: number;
@@ -72,33 +72,6 @@ export async function syncOsmPlace(osmType: string, osmId: string): Promise<Rest
   const { data } = await apiClient.get<ApiResponse<Restaurant>>(
     `/restaurants/osm/${osmType}/${osmId}`,
     { params: { sync: true } },
-  );
-  return data.data;
-}
-
-/** Avis d'un restaurant (GET /reviews/restaurants/:id/reviews). */
-export async function getRestaurantReviews(
-  restaurantId: string,
-  page = 1,
-): Promise<{ items: Review[]; meta: PaginationMeta }> {
-  const { data } = await apiClient.get<ApiResponse<Review[]>>(
-    `/reviews/restaurants/${restaurantId}/reviews`,
-    { params: { page } },
-  );
-  return {
-    items: data.data,
-    meta: data.meta ?? { page, limit: 20, total: data.data.length },
-  };
-}
-
-/** Publier un avis sur un restaurant. */
-export async function createReview(
-  restaurantId: string,
-  payload: { rating: number; content?: string },
-): Promise<Review> {
-  const { data } = await apiClient.post<ApiResponse<Review>>(
-    `/reviews/restaurants/${restaurantId}/reviews`,
-    payload,
   );
   return data.data;
 }

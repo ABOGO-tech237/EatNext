@@ -33,10 +33,27 @@ export async function listRestaurantReviews(restaurantId: string, page = 1, limi
   return result;
 }
 
+export async function listUserReviews(userId: string, page = 1, limit = 20) {
+  const [items, total] = await Promise.all([
+    prisma.review.findMany({
+      where: { userId },
+      include: {
+        restaurant: { select: { id: true, name: true, city: true, photos: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.review.count({ where: { userId } }),
+  ]);
+
+  return { items, total, page, limit };
+}
+
 export async function createReview(
   userId: string,
   restaurantId: string,
-  data: { rating: number; content?: string; photos?: string[] },
+  data: { rating: number; content: string; photos?: string[] },
 ) {
   const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
   if (!restaurant || restaurant.status !== 'published') {

@@ -16,8 +16,38 @@ import * as osmSyncService from './osmSync.service.js';
 
 // Durées de vie (secondes) des différentes entrées de cache.
 const SEARCH_TTL = 300;
+const FEATURED_SEARCH_TTL = 600;
 const DETAIL_TTL = 600;
 const NEARBY_TTL = 300;
+const STATS_TTL = 600;
+
+const STATS_CACHE_KEY = 'restaurants:stats:public';
+
+/** Requête homepage fréquente : pas de filtres, tri par note décroissante. */
+function isFeaturedSearch(params: RestaurantSearchParams, page: number, limit: number): boolean {
+  return (
+    page === 1 &&
+    limit <= 6 &&
+    params.sortBy === 'rating' &&
+    (params.order === 'desc' || params.order === undefined) &&
+    !params.q &&
+    !params.city &&
+    !params.cuisine &&
+    params.lat == null &&
+    params.lng == null &&
+    !params.minRating &&
+    !params.priceRange
+  );
+}
+
+function buildOrderBy(
+  params: RestaurantSearchParams,
+): Prisma.RestaurantOrderByWithRelationInput {
+  if (params.sortBy === 'name') {
+    return { name: params.order ?? 'asc' };
+  }
+  return { avgRating: params.order ?? 'desc' };
+}
 
 /** Restaurant enrichi tel que renvoyé par `getRestaurantById` (avec relations). */
 type RestaurantDetail = Prisma.RestaurantGetPayload<{
@@ -88,10 +118,7 @@ export async function searchRestaurants(params: RestaurantSearchParams) {
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy:
-        params.sortBy === 'name'
-          ? { name: params.order ?? 'asc' }
-          : { avgRating: params.order ?? 'desc' },
+      orderBy: buildOrderBy(params),
     }),
     prisma.restaurant.count({ where }),
   ]);
@@ -113,7 +140,8 @@ export async function searchRestaurants(params: RestaurantSearchParams) {
   }
 
   const result = { items: enriched, total, page, limit };
-  await cacheSet(cacheKey, { items: enriched, total }, SEARCH_TTL);
+  const ttl = isFeaturedSearch(params, page, limit) ? FEATURED_SEARCH_TTL : SEARCH_TTL;
+  await cacheSet(cacheKey, { items: enriched, total }, ttl);
   return result;
 }
 
@@ -382,19 +410,23 @@ export async function recalculateRating(restaurantId: string) {
 
 /** Compteurs publics pour la page d'accueil (données réelles en base). */
 export async function getPublicStats() {
-  const [restaurants, reviews, cityRows] = await Promise.all([
+  const cached = await cacheGet<{ restaurants: number; reviews: number; cities: number }>(STATS_CACHE_KEY);
+  if (cached) return cached;
+
+  const [restaurants, reviews, cityGroups] = await Promise.all([
     prisma.restaurant.count({ where: { status: 'published' } }),
     prisma.review.count(),
-    prisma.restaurant.findMany({
+    prisma.restaurant.groupBy({
+      by: ['city'],
       where: { status: 'published' },
-      select: { city: true },
-      distinct: ['city'],
     }),
   ]);
 
-  return {
+  const stats = {
     restaurants,
     reviews,
-    cities: cityRows.length,
+    cities: cityGroups.length,
   };
+  await cacheSet(STATS_CACHE_KEY, stats, STATS_TTL);
+  return stats;
 }

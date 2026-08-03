@@ -23,6 +23,7 @@ enum RestaurantStatus {
 enum RestaurantSource {
   USER_SUBMITTED
   OSM_SYNC
+  AYILAA_IMPORT
 }
 
 enum ComplaintType {
@@ -96,6 +97,9 @@ model Restaurant {
   @@index([city])
   @@index([cuisineType])
   @@index([status])
+  @@index([status, avgRating])
+  @@index([status, name])
+  @@index([status, city])
   @@index([lat, lng])
   @@index([source])
   @@map("restaurants")

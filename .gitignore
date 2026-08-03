@@ -3,6 +3,7 @@ dist/
 build/
 .env
 .env.local
+.env.production
 *.log
 .DS_Store
 coverage/
@@ -12,3 +13,6 @@ coverage/
 
 # Local user-mode Postgres cluster
 .pgdata/
+
+# Vercel (liens projet locaux)
+.vercel/

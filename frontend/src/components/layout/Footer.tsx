@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 import { Facebook, Heart, Instagram, Mail, MapPin, Search, Twitter, UtensilsCrossed } from 'lucide-react';
 
 const footerLinks = [
-  { label: 'À propos', href: '#a-propos' },
-  { label: 'Contact', href: '#contact' },
-  { label: 'CGU', href: '#cgu' },
+  { label: 'À propos', to: '/a-propos' },
+  { label: 'Contact', to: '/contact' },
+  { label: 'CGU', to: '/cgu' },
 ];
 
 const socialLinks = [
@@ -87,17 +87,15 @@ export function Footer() {
                     Rechercher un restaurant
                   </Link>
                 </li>
-                {footerLinks.map(({ label, href }) => (
+                {footerLinks.map(({ label, to }) => (
                   <li key={label}>
-                    <a
-                      href={href}
+                    <Link
+                      to={to}
                       className="group inline-flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-brand-600"
-                      onClick={(e) => e.preventDefault()}
-                      title={`${label} — bientôt disponible`}
                     >
                       <span className="h-px w-0 bg-brand-400 transition-all duration-150 group-hover:w-3" />
                       {label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

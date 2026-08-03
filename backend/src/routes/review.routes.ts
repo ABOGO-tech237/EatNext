@@ -17,9 +17,14 @@ const router = Router();
 
 const reviewSchema = z.object({
   rating: z.number().min(1).max(5),
-  content: z.string().optional(),
+  content: z.string().min(20, 'Le commentaire doit contenir au moins 20 caractères.'),
   photos: z.array(z.string()).optional(),
 });
+
+const reviewUpdateSchema = reviewSchema.partial().refine(
+  (data) => data.content === undefined || data.content.length >= 20,
+  { message: 'Le commentaire doit contenir au moins 20 caractères.', path: ['content'] },
+);
 
 /**
  * @openapi
@@ -44,6 +49,32 @@ const reviewSchema = z.object({
  *                     data: { type: array, items: { $ref: '#/components/schemas/Review' } }
  *                     meta: { $ref: '#/components/schemas/Pagination' }
  */
+/**
+ * @openapi
+ * /reviews/me:
+ *   get:
+ *     tags: [Reviews]
+ *     summary: Lister mes avis
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: page, schema: { type: integer, default: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, default: 20 } }
+ *     responses:
+ *       200:
+ *         description: Liste paginée des avis de l'utilisateur connecté.
+ */
+router.get('/me', authenticate, async (req, res, next) => {
+  try {
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 20);
+    const result = await reviewService.listUserReviews(req.user!.sub, page, limit);
+    sendSuccess(res, result.items, 200, { page: result.page, limit: result.limit, total: result.total });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/restaurants/:id/reviews', async (req, res, next) => {
   try {
     const page = Number(req.query.page ?? 1);
@@ -138,7 +169,7 @@ router.post('/restaurants/:id/reviews', authenticate, validateBody(reviewSchema)
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
-router.put('/:id', authenticate, validateBody(reviewSchema.partial()), async (req, res, next) => {
+router.put('/:id', authenticate, validateBody(reviewUpdateSchema), async (req, res, next) => {
   try {
     // Le service autorise l'auteur de l'avis ou un admin uniquement.
     const review = await reviewService.updateReview(req.params.id, req.user!.sub, req.user!.role, req.body);

@@ -5,7 +5,6 @@ import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { Button } from '../components/ui/Button';
 import { useRestaurantSearch, usePublicStats } from '../hooks/useRestaurants';
 import { RestaurantGridSkeleton } from '../components/ui/Spinner';
-
 const FEATURED_PARAMS = { limit: 6, sortBy: 'rating' as const, order: 'desc' as const };
 
 /**
@@ -34,11 +33,13 @@ export default function HomePage() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800 text-white">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-800/90 via-brand-700/80 to-brand-900/90" />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-900/70 via-transparent to-transparent" />
         <div className="absolute inset-0 opacity-10">
           <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-white blur-3xl" />
           <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-white blur-3xl" />
         </div>
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

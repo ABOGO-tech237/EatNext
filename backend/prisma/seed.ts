@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 /**
  * Seed minimal : compte admin uniquement.
- * Les restaurants viennent d'OpenStreetMap (npm run db:bootstrap ou sync au démarrage).
+ * Restaurants : npm run db:import-ayilaa (Ayilaa JSONL) ou npm run db:bootstrap (OSM).
  */
 async function main() {
   const passwordHash = await bcrypt.hash('Password123!', 12);
@@ -24,7 +24,8 @@ async function main() {
 
   console.log('Seed complete (admin account only).');
   console.log('Admin: admin@eatnext.africa / Password123!');
-  console.log('Restaurants: run npm run db:bootstrap (OpenStreetMap → PostgreSQL)');
+  console.log('Restaurants Ayilaa: npm run db:import-ayilaa -- --fallback-centroid');
+  console.log('Restaurants OSM:     npm run db:bootstrap');
 }
 
 main()
