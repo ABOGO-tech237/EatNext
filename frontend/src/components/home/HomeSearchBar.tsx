@@ -7,9 +7,10 @@ import { DURATION, easeOut, searchLand } from '../../lib/motion';
 import { useSearchFilters } from '../../hooks/useRestaurants';
 import { pickHomeCities } from '../../lib/filters';
 import { searchParamsToQuery } from '../../lib/searchQuery';
+import { SearchBar } from '../search/SearchBar';
 
 /**
- * Barre de recherche — 2 villes à l’accueil.
+ * Barre de recherche — 2 villes à l’accueil, suggestions live sur le texte.
  */
 export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
   const navigate = useNavigate();
@@ -19,9 +20,15 @@ export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
   const [city, setCity] = useState('');
   const cities = pickHomeCities(data?.cities ?? []);
 
+  const goSearch = (query = q) => {
+    navigate(
+      `/search?${searchParamsToQuery({ q: query.trim() || undefined, city: city || undefined })}`,
+    );
+  };
+
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    navigate(`/search?${searchParamsToQuery({ q: q.trim() || undefined, city: city || undefined })}`);
+    goSearch();
   };
 
   const locateMe = () => {
@@ -50,15 +57,13 @@ export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
       animate={searchLand.animate}
       transition={{ duration: DURATION.hero, delay: reduce ? 0 : delay, ease: easeOut }}
     >
-      <label className="sr-only" htmlFor="home-q">
-        Plat, restaurant, ambiance
-      </label>
-      <input
-        id="home-q"
+      <SearchBar
+        embedded
+        inputId="home-q"
         value={q}
-        onChange={(e) => setQ(e.target.value)}
+        onQueryChange={setQ}
+        onSubmit={goSearch}
         placeholder="Restaurant, cuisine, quartier…"
-        className="h-12 rounded-xl border-0 bg-transparent px-4 text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0"
       />
       <select
         aria-label="Ville"

@@ -1,6 +1,6 @@
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, Home, LogOut, Menu, Search, Store, User, X } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAuthStore, useIsAuthenticated } from '../../stores/authStore';
 import { useAuthActions } from '../../hooks/useAuth';
 import { SearchBar } from '../search/SearchBar';
@@ -52,6 +52,16 @@ export function Header() {
     closeMobile();
   };
 
+  const liveSearch = useCallback(
+    (q: string) => {
+      if (location.pathname !== '/search') return;
+      const current = queryToSearchParams(urlParams);
+      if ((current.q ?? '') === q) return;
+      navigate(`/search?${searchParamsToQuery({ ...current, q: q || undefined })}`, { replace: true });
+    },
+    [location.pathname, navigate, urlParams],
+  );
+
   return (
     <header className="sticky top-0 z-50 border-b border-ink-100 bg-white/95 shadow-sm backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
@@ -83,6 +93,7 @@ export function Header() {
             inputId="header-search-q"
             value={currentQ}
             onSubmit={submitSearch}
+            onLiveQuery={liveSearch}
             className="w-full max-w-md ml-auto"
           />
         </div>
@@ -129,6 +140,7 @@ export function Header() {
             inputId="header-search-q-mobile"
             value={currentQ}
             onSubmit={submitSearch}
+            onLiveQuery={liveSearch}
             className="mb-3 w-full"
           />
           <nav className="space-y-1" aria-label="Navigation mobile">
