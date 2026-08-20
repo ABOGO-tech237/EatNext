@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
+import { useSearchFilters } from '../../hooks/useRestaurants';
 
 /**
- * Pied de page aligné sur develop — blanc / ink, liens réels.
+ * Pied de page — villes dynamiques depuis la base.
  */
 export function Footer() {
   const year = new Date().getFullYear();
+  const { data } = useSearchFilters();
+  const cities = data?.cities.slice(0, 6) ?? [];
 
   return (
     <footer className="mt-auto border-t border-ink-200 bg-gradient-to-b from-white to-ink-50">
@@ -31,22 +34,16 @@ export function Footer() {
                   Trouver une table
                 </Link>
               </li>
-              <li>
-                <Link
-                  to="/search?city=Yaoundé"
-                  className="text-sm text-ink-500 transition-colors hover:text-brand-600"
-                >
-                  Yaoundé
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/search?city=Douala"
-                  className="text-sm text-ink-500 transition-colors hover:text-brand-600"
-                >
-                  Douala
-                </Link>
-              </li>
+              {cities.map((c) => (
+                <li key={c.name}>
+                  <Link
+                    to={`/search?city=${encodeURIComponent(c.name)}`}
+                    className="text-sm text-ink-500 transition-colors hover:text-brand-600"
+                  >
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
               <li>
                 <Link to="/pro" className="text-sm text-ink-500 transition-colors hover:text-brand-600">
                   Inscrire mon restaurant
@@ -79,7 +76,7 @@ export function Footer() {
 
         <div className="mt-8 border-t border-ink-100 pt-6">
           <p className="text-center text-xs text-ink-400 sm:text-left">
-            © {year} EatNext. Tous droits réservés.
+            © {year}. Tous droits réservés.
           </p>
         </div>
       </div>

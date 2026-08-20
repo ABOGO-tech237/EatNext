@@ -49,16 +49,6 @@ export const CAMEROON_CITIES = [
   { name: 'Douala', lat: 4.0511, lng: 9.7679 },
 ] as const;
 
-/** Source unique home + filtres — alignée sur le seed réel. */
-export const CUISINE_CHIPS = [
-  { label: 'Camerounaise', value: 'camerounaise' },
-  { label: 'Franco-africaine', value: 'franco-africaine' },
-  { label: 'Ouest-africaine', value: 'ouest-africaine' },
-  { label: 'Méditerranéenne', value: 'méditerranéenne' },
-  { label: 'Nigériane', value: 'nigériane' },
-  { label: 'Fruits de mer', value: 'fruits de mer' },
-] as const;
-
 /** Dernier segment d’adresse (Bastos, Akwa) — ignore la ville si elle est en suffixe. */
 export function neighborhoodFromAddress(address?: string | null): string | null {
   if (!address) return null;

@@ -107,3 +107,20 @@ export interface RestaurantStats {
   cities: number;
   reviews: number;
 }
+
+export interface SearchFilterCity {
+  name: string;
+  count: number;
+  lat: number;
+  lng: number;
+}
+
+export interface SearchFilterCuisine {
+  name: string;
+  count: number;
+}
+
+export interface SearchFilterOptions {
+  cities: SearchFilterCity[];
+  cuisines: SearchFilterCuisine[];
+}

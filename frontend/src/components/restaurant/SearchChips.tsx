@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { MapPin } from 'lucide-react';
 import type { SearchParams } from '../../types';
-import { cn, CUISINE_CHIPS, PRICE_RANGE_TIERS } from '../../lib/utils';
+import { cn, PRICE_RANGE_TIERS } from '../../lib/utils';
+import { useSearchFilters } from '../../hooks/useRestaurants';
 
 interface SearchChipsProps {
   params: SearchParams;
@@ -36,9 +37,13 @@ function Chip({
 }
 
 /**
- * Chips cuisine / palier / note / près de moi.
+ * Chips ville / cuisine / palier / note — valeurs issues de la base.
  */
 export function SearchChips({ params, onChange, onApply, onLocate }: SearchChipsProps) {
+  const { data } = useSearchFilters();
+  const cities = data?.cities ?? [];
+  const cuisines = data?.cuisines ?? [];
+
   const apply = (patch: Partial<SearchParams>) => {
     const next = { ...params, ...patch };
     onChange(next);
@@ -47,13 +52,22 @@ export function SearchChips({ params, onChange, onApply, onLocate }: SearchChips
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
-      {CUISINE_CHIPS.map((c) => (
+      {cities.map((c) => (
         <Chip
-          key={c.value}
-          active={params.cuisine === c.value}
-          onClick={() => apply({ cuisine: params.cuisine === c.value ? undefined : c.value })}
+          key={`city-${c.name}`}
+          active={params.city === c.name}
+          onClick={() => apply({ city: params.city === c.name ? undefined : c.name })}
         >
-          {c.label}
+          {c.name}
+        </Chip>
+      ))}
+      {cuisines.map((c) => (
+        <Chip
+          key={`cuisine-${c.name}`}
+          active={params.cuisine === c.name}
+          onClick={() => apply({ cuisine: params.cuisine === c.name ? undefined : c.name })}
+        >
+          {c.name}
         </Chip>
       ))}
       {PRICE_RANGE_TIERS.map((tier) => (
