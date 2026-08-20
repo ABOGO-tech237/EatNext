@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { MapPin } from 'lucide-react';
 import type { SearchParams } from '../../types';
-import { cn, PRICE_RANGE_TIERS } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 import { useSearchFilters } from '../../hooks/useRestaurants';
 
 interface SearchChipsProps {
@@ -37,7 +37,7 @@ function Chip({
 }
 
 /**
- * Chips ville / cuisine / palier / note — valeurs issues de la base.
+ * Chips ville / cuisine — valeurs issues de la base.
  */
 export function SearchChips({ params, onChange, onApply, onLocate }: SearchChipsProps) {
   const { data } = useSearchFilters();
@@ -68,26 +68,6 @@ export function SearchChips({ params, onChange, onApply, onLocate }: SearchChips
           onClick={() => apply({ cuisine: params.cuisine === c.name ? undefined : c.name })}
         >
           {c.name}
-        </Chip>
-      ))}
-      {PRICE_RANGE_TIERS.map((tier) => (
-        <Chip
-          key={tier.level}
-          active={params.priceRange === tier.level}
-          onClick={() =>
-            apply({ priceRange: params.priceRange === tier.level ? undefined : tier.level })
-          }
-        >
-          {tier.short}
-        </Chip>
-      ))}
-      {[4.5, 4].map((r) => (
-        <Chip
-          key={r}
-          active={params.minRating === r}
-          onClick={() => apply({ minRating: params.minRating === r ? undefined : r })}
-        >
-          {r}+
         </Chip>
       ))}
       <Chip active={params.lat != null} onClick={onLocate}>

@@ -8,10 +8,13 @@ interface SearchBarProps {
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
+  inputId?: string;
+  /** Version navbar : pas de bouton « Chercher ». */
+  compact?: boolean;
 }
 
 /**
- * Barre texte unique — home, header et page recherche.
+ * Barre texte unique — header, home et page recherche.
  */
 export function SearchBar({
   value = '',
@@ -19,6 +22,8 @@ export function SearchBar({
   placeholder = 'Restaurant, cuisine, quartier…',
   className,
   autoFocus,
+  inputId = 'eatnext-search-q',
+  compact,
 }: SearchBarProps) {
   const [q, setQ] = useState(value);
 
@@ -36,29 +41,32 @@ export function SearchBar({
       onSubmit={handleSubmit}
       role="search"
       className={cn(
-        'flex h-11 items-center gap-2 rounded-2xl border border-ink-200 bg-white px-3 shadow-sm',
+        'flex items-center gap-2 rounded-2xl border border-ink-200 bg-white px-3',
+        compact ? 'h-10' : 'h-11 shadow-sm',
         'focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-500/20',
         className,
       )}
     >
       <Search className="h-4 w-4 shrink-0 text-ink-400" aria-hidden />
-      <label className="sr-only" htmlFor="eatnext-search-q">
+      <label className="sr-only" htmlFor={inputId}>
         Rechercher un restaurant
       </label>
       <input
-        id="eatnext-search-q"
+        id={inputId}
         value={q}
         autoFocus={autoFocus}
         onChange={(e) => setQ(e.target.value)}
         placeholder={placeholder}
         className="h-full min-w-0 flex-1 bg-transparent text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
       />
-      <button
-        type="submit"
-        className="shrink-0 rounded-xl bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
-      >
-        Chercher
-      </button>
+      {!compact && (
+        <button
+          type="submit"
+          className="shrink-0 rounded-xl bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          Chercher
+        </button>
+      )}
     </form>
   );
 }

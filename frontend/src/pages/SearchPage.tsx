@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { ChevronUp, SlidersHorizontal, X } from 'lucide-react';
 import { SearchFilters } from '../components/restaurant/SearchFilters';
 import { SearchChips } from '../components/restaurant/SearchChips';
-import { SearchBar } from '../components/search/SearchBar';
 import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { RestaurantMap } from '../components/restaurant/RestaurantMap';
 import { RestaurantGridSkeleton } from '../components/ui/Spinner';
@@ -92,8 +91,15 @@ export default function SearchPage() {
       <div className="border-b border-ink-100 bg-ink-50 px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Explorer</p>
-            <h1 className="text-2xl font-bold text-ink-900 sm:text-3xl">Tables à proximité</h1>
+            <h1 className="text-2xl font-bold text-ink-900 sm:text-3xl">
+              {params.q
+                ? `« ${params.q} »`
+                : params.city
+                  ? params.city
+                  : params.cuisine
+                    ? params.cuisine
+                    : 'Restaurants'}
+            </h1>
             <p className="mt-1 text-sm text-ink-500">
               {data?.meta.total ?? '…'} résultat{(data?.meta.total ?? 0) > 1 ? 's' : ''}
               {isFetching && !isLoading && ' · mise à jour'}
@@ -115,10 +121,6 @@ export default function SearchPage() {
           </div>
         </div>
         <div className="mx-auto mt-4 max-w-[1600px] space-y-3">
-          <SearchBar
-            value={params.q ?? ''}
-            onSubmit={(q) => apply({ ...params, q: q || undefined })}
-          />
           <SearchChips
             params={params}
             onChange={setDraft}

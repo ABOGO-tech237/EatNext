@@ -139,7 +139,7 @@ export default function RestaurantDetailPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-5 text-left text-white sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
-                <SourceBadge restaurant={restaurant} />
+                {restaurant.ownerId && <SourceBadge restaurant={restaurant} />}
                 <Badge variant="muted" className="capitalize normal-case tracking-normal">
                   {restaurant.cuisineType}
                 </Badge>
