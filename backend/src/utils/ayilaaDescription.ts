@@ -32,6 +32,8 @@ function decodeEntities(text: string): string {
     .replace(/&ugrave;/gi, 'ù')
     .replace(/&ucirc;/gi, 'û')
     .replace(/&ccedil;/gi, 'ç')
+    .replace(/&oelig;/gi, 'œ')
+    .replace(/&OElig;/gi, 'Œ')
     .replace(/&Agrave;/gi, 'À')
     .replace(/&Eacute;/gi, 'É')
     .replace(/&Ccedil;/gi, 'Ç')
