@@ -1,17 +1,21 @@
 import { HomeCuisines } from '../components/home/HomeCuisines';
+import { HomeFeatured } from '../components/home/HomeFeatured';
 import { HomeHero } from '../components/home/HomeHero';
+import { HomeMoments } from '../components/home/HomeMoments';
 import { HomeOwnerCta } from '../components/home/HomeOwnerCta';
-import { HomeRails } from '../components/home/HomeRails';
+import { HomeSteps } from '../components/home/HomeSteps';
 
 /**
- * Accueil diner — recherche, collections, puis restaurateurs.
+ * Accueil diner — densité visuelle, collections, puis restaurateurs.
  */
 export default function HomePage() {
   return (
     <div>
       <HomeHero />
       <HomeCuisines />
-      <HomeRails />
+      <HomeFeatured />
+      <HomeMoments />
+      <HomeSteps />
       <HomeOwnerCta />
     </div>
   );

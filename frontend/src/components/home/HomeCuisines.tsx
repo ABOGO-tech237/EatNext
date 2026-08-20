@@ -3,7 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { FadeIn } from '../ui/FadeIn';
 import { PhotoCover } from '../ui/PhotoCover';
 import { useRestaurantSearch, useSearchFilters } from '../../hooks/useRestaurants';
+import { coverForCity, coverForCuisine } from '../../lib/covers';
 import { pickHomeCities, pickHomeCuisines } from '../../lib/filters';
+
+const CITY_SUBTITLES: Record<string, string> = {
+  douala: 'Akwa, Bonanjo, Deido',
+  yaoundé: 'Bastos, Mvan, Nlongkak',
+  yaounde: 'Bastos, Mvan, Nlongkak',
+};
+
+function citySubtitle(name: string): string | undefined {
+  const key = name.trim().toLowerCase();
+  if (CITY_SUBTITLES[key]) return CITY_SUBTITLES[key];
+  const folded = key.normalize('NFD').replace(/\p{M}/gu, '');
+  if (folded.includes('douala')) return CITY_SUBTITLES.douala;
+  if (folded.includes('yaound')) return CITY_SUBTITLES.yaounde;
+  return CITY_SUBTITLES[folded];
+}
 
 /**
  * Accueil : 2 villes + 3 types de cuisine.
@@ -48,6 +64,7 @@ export function HomeCuisines() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             {cities.map((city, i) => {
               const cover = coverByCity.get(city.name);
+              const subtitle = citySubtitle(city.name);
               return (
                 <FadeIn key={city.name} inView delay={i * 0.04}>
                   <button
@@ -62,12 +79,18 @@ export function HomeCuisines() {
                           alt={city.name}
                           seed={cover?.seed ?? city.name}
                           cuisine={cover?.cuisine}
+                          fallbackSrc={coverForCity(city.name)}
                         />
                       </div>
                     </div>
-                    <span className="block px-4 py-3 text-sm font-medium text-ink-800">
-                      {city.name}
-                      <span className="ml-1 text-ink-400">· {city.count}</span>
+                    <span className="block px-4 py-3">
+                      <span className="block text-sm font-medium text-ink-800">
+                        {city.name}
+                        <span className="ml-1 text-ink-400">· {city.count}</span>
+                      </span>
+                      {subtitle && (
+                        <span className="mt-0.5 block text-xs text-ink-400">{subtitle}</span>
+                      )}
                     </span>
                   </button>
                 </FadeIn>
@@ -99,6 +122,7 @@ export function HomeCuisines() {
                           alt={cuisine.name}
                           seed={cover?.seed ?? cuisine.name}
                           cuisine={cuisine.name}
+                          fallbackSrc={coverForCuisine(cuisine.name)}
                         />
                       </div>
                     </div>
