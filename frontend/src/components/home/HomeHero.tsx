@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { DURATION, easeOut } from '../../lib/motion';
 import { HERO_COVER } from '../../lib/covers';
+import { pickHomeCities } from '../../lib/filters';
 import { useSearchFilters } from '../../hooks/useRestaurants';
 import { HomeSearchBar } from './HomeSearchBar';
 import { HomeStats } from './HomeStats';
@@ -11,7 +12,7 @@ import { HomeStats } from './HomeStats';
 export function HomeHero() {
   const reduce = useReducedMotion();
   const { data } = useSearchFilters();
-  const cities = data?.cities.map((c) => c.name).slice(0, 4) ?? [];
+  const cities = pickHomeCities(data?.cities ?? []).map((c) => c.name);
 
   const enter = (delay: number, y = 12) =>
     reduce

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { MapPin } from 'lucide-react';
 import type { SearchParams } from '../../types';
-import { isUsefulCuisine } from '../../lib/filters';
+import { pickHomeCities, pickHomeCuisines } from '../../lib/filters';
 import { cn } from '../../lib/utils';
 import { useSearchFilters } from '../../hooks/useRestaurants';
 
@@ -38,12 +38,12 @@ function Chip({
 }
 
 /**
- * Chips ville / cuisine — valeurs issues de la base.
+ * Chips ville / cuisine — 2 villes et 3 cuisines à l’accueil / recherche.
  */
 export function SearchChips({ params, onChange, onApply, onLocate }: SearchChipsProps) {
   const { data } = useSearchFilters();
-  const cities = data?.cities ?? [];
-  const cuisines = (data?.cuisines ?? []).filter((c) => isUsefulCuisine(c.name));
+  const cities = pickHomeCities(data?.cities ?? []);
+  const cuisines = pickHomeCuisines(data?.cuisines ?? []);
 
   const apply = (patch: Partial<SearchParams>) => {
     const next = { ...params, ...patch };

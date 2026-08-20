@@ -5,10 +5,11 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { DURATION, easeOut, searchLand } from '../../lib/motion';
 import { useSearchFilters } from '../../hooks/useRestaurants';
+import { pickHomeCities } from '../../lib/filters';
 import { searchParamsToQuery } from '../../lib/searchQuery';
 
 /**
- * Barre de recherche — villes importées depuis la base.
+ * Barre de recherche — 2 villes à l’accueil.
  */
 export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
   const { data } = useSearchFilters();
   const [q, setQ] = useState('');
   const [city, setCity] = useState('');
-  const cities = data?.cities ?? [];
+  const cities = pickHomeCities(data?.cities ?? []);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
