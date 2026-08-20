@@ -2,7 +2,13 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../../stores/authStore';
 
 /** URL de base de l'API — surchargeable via variable d'environnement Vite. */
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/v1';
+
+/**
+ * Mode mock explicite uniquement (démo hors-ligne).
+ * Par défaut false : le frontend exige une API backend disponible.
+ */
+export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 /** Instance Axios partagée par tous les modules API. */
 export const apiClient = axios.create({
@@ -40,3 +46,15 @@ apiClient.interceptors.response.use(
     return Promise.reject(new Error(message));
   },
 );
+
+/**
+ * Exécute une requête API ou le mock si VITE_USE_MOCK=true.
+ * Aucun repli silencieux en cas d'erreur réseau.
+ */
+export async function withMockFallback<T>(
+  apiCall: () => Promise<T>,
+  mockCall: () => T | Promise<T>,
+): Promise<T> {
+  if (USE_MOCK) return mockCall();
+  return apiCall();
+}

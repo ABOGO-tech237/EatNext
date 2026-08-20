@@ -88,13 +88,19 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
 
 4. Ouvrir [http://localhost:5173](http://localhost:5173) — l’API est sur [http://localhost:3000/v1](http://localhost:3000/v1).
 
-### Compte admin (seed)
+### Comptes de test (seed)
 
 | Email | Mot de passe | Rôle |
 |-------|--------------|------|
+| `marie@example.com` | `Password123!` | user (diner) |
 | `admin@eatnext.africa` | `Password123!` | admin |
+| `owner@eatnext.africa` | `Password123!` | owner (console `/pro`) |
 
 Les restaurants proviennent du fichier **Ayilaa** (`db:import-ayilaa`) ou d'**OpenStreetMap** (`db:bootstrap`).
+
+Deux espaces dans la même app :
+- **Diner** (`/`) — accueil, recherche, carte, avis, favoris
+- **Console restaurateur** (`/pro`) — revendiquer une fiche, créer un établissement, menu, réponses aux avis
 
 ## Données Ayilaa
 

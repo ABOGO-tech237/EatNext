@@ -7,7 +7,7 @@ interface ReviewCardProps {
   review: Review;
 }
 
-/** Carte d'avis individuel sur la fiche restaurant. */
+/** Carte d'avis individuel — affiche la réponse du restaurateur si présente. */
 export function ReviewCard({ review }: ReviewCardProps) {
   const date = format(new Date(review.createdAt), 'd MMMM yyyy', { locale: fr });
 
@@ -27,6 +27,14 @@ export function ReviewCard({ review }: ReviewCardProps) {
       </div>
       {review.content && (
         <p className="mt-3 text-sm leading-relaxed text-ink-600">{review.content}</p>
+      )}
+      {review.ownerReply && (
+        <div className="mt-3 rounded-xl border border-ink-100 bg-ink-50 px-3 py-2.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+            Réponse de l'établissement
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-700">{review.ownerReply}</p>
+        </div>
       )}
     </article>
   );

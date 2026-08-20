@@ -33,7 +33,15 @@ export function createApp() {
 
   // --- Middlewares globaux ---
   app.use(helmet()); // En-têtes HTTP de sécurité (XSS, clickjacking…).
-  app.use(cors({ origin: env.clientUrl, credentials: true })); // Autorise le front + cookies.
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || env.nodeEnv === 'development') return callback(null, true);
+        return callback(null, origin === env.clientUrl);
+      },
+      credentials: true,
+    }),
+  );
   app.use(compression()); // Compression gzip des réponses.
   app.use(morgan(env.nodeEnv === 'development' ? 'dev' : 'combined')); // Logs HTTP.
   app.use(express.json({ limit: '2mb' })); // Parsing JSON (limite anti-abus).

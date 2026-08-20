@@ -17,14 +17,11 @@ const router = Router();
 
 const reviewSchema = z.object({
   rating: z.number().min(1).max(5),
-  content: z.string().min(20, 'Le commentaire doit contenir au moins 20 caractères.'),
+  content: z.string().optional(),
   photos: z.array(z.string()).optional(),
 });
 
-const reviewUpdateSchema = reviewSchema.partial().refine(
-  (data) => data.content === undefined || data.content.length >= 20,
-  { message: 'Le commentaire doit contenir au moins 20 caractères.', path: ['content'] },
-);
+const reviewUpdateSchema = reviewSchema.partial();
 
 /**
  * @openapi

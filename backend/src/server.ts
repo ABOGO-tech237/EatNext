@@ -33,8 +33,8 @@ async function main() {
   startOsmSyncScheduler();
 
   const app = createApp();
-  app.listen(env.port, () => {
-    console.log(`EatNext API running on http://localhost:${env.port}`);
+  app.listen(env.port, '0.0.0.0', () => {
+    console.log(`EatNext API running on http://0.0.0.0:${env.port}`);
     console.log(`API base: http://localhost:${env.port}/v1`);
   });
 }

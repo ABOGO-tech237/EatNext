@@ -7,6 +7,7 @@
  */
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { sendSuccess } from '../utils/response.js';
@@ -15,6 +16,18 @@ import * as osmSyncService from '../services/osmSync.service.js';
 import * as overpassService from '../services/overpass.service.js';
 
 const router = Router();
+
+/** Anti-spam création / revendication (auth déjà requise). */
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: { code: 'RATE_LIMIT', message: 'Trop de requêtes. Réessayez plus tard.', status: 429 },
+  },
+});
 
 // Filtres de recherche : `coerce` convertit les query strings en nombres.
 const searchSchema = z.object({
@@ -42,6 +55,16 @@ const createSchema = z.object({
   cuisineType: z.string().min(2),
   priceRange: z.number().min(1).max(4),
   photos: z.array(z.string()).optional(),
+  phone: z.string().min(6).optional(),
+  website: z.string().url().optional().or(z.literal('')),
+  openingHours: z.string().optional(),
+});
+
+const menuItemSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  price: z.number().min(0),
+  category: z.string().optional(),
 });
 
 /**
@@ -149,8 +172,40 @@ router.get('/nearby', async (req, res, next) => {
  */
 router.get('/stats', async (_req, res, next) => {
   try {
-    const stats = await restaurantService.getPublicStats();
+    const stats = await restaurantService.getRestaurantStats();
     sendSuccess(res, stats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @openapi
+ * /restaurants/mine:
+ *   get:
+ *     tags: [Restaurants]
+ *     summary: Restaurants dont l'utilisateur est propriétaire
+ *     description: Inclut pending, published et suspended (brouillons visibles).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+ *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+ *     responses:
+ *       200:
+ *         description: Liste paginée des fiches de l'owner.
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.get('/mine', authenticate, async (req, res, next) => {
+  try {
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 20);
+    const result = await restaurantService.getMyRestaurants(req.user!.sub, page, limit);
+    sendSuccess(res, result.items, 200, {
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+    });
   } catch (err) {
     next(err);
   }
@@ -376,7 +431,7 @@ router.get('/:id', async (req, res, next) => {
  *       400: { $ref: '#/components/responses/ValidationError' }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  */
-router.post('/', authenticate, validateBody(createSchema), async (req, res, next) => {
+router.post('/', authenticate, writeLimiter, validateBody(createSchema), async (req, res, next) => {
   try {
     const restaurant = await restaurantService.createRestaurant(req.user!.sub, req.body);
     sendSuccess(res, restaurant, 201);
@@ -542,16 +597,9 @@ router.delete('/:id', authenticate, requireRole('admin'), async (req, res, next)
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
-router.post('/:id/claim', authenticate, async (req, res, next) => {
+router.post('/:id/claim', authenticate, writeLimiter, async (req, res, next) => {
   try {
-    // Repasse le restaurant en `pending` afin qu'un admin valide la revendication.
-    const restaurant = await restaurantService.updateRestaurant(
-      req.params.id,
-      req.user!.sub,
-      req.user!.role,
-      { status: 'pending' },
-    );
-    await restaurantService.updateRestaurant(req.params.id, 'admin', 'admin', {});
+    const restaurant = await restaurantService.claimRestaurant(req.params.id, req.user!.sub);
     sendSuccess(res, restaurant);
   } catch (err) {
     next(err);
@@ -670,29 +718,23 @@ router.get('/:id/menu', async (req, res, next) => {
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
-const menuSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        name: z.string().min(1),
-        price: z.number().positive(),
-        description: z.string().optional(),
-      }),
-    )
-    .optional(),
-});
-
-router.put('/:id/menu', authenticate, validateBody(menuSchema), async (req, res, next) => {
-  try {
-    const restaurant = await restaurantService.getRestaurantById(req.params.id);
-    if (req.user!.role !== 'admin' && restaurant.ownerId !== req.user!.sub) {
-      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Accès refusé', status: 403 } });
+router.put(
+  '/:id/menu',
+  authenticate,
+  validateBody(z.object({ items: z.array(menuItemSchema) })),
+  async (req, res, next) => {
+    try {
+      const items = await restaurantService.replaceRestaurantMenu(
+        req.params.id,
+        req.user!.sub,
+        req.user!.role,
+        req.body.items,
+      );
+      sendSuccess(res, items);
+    } catch (err) {
+      next(err);
     }
-    const menu = await restaurantService.replaceRestaurantMenu(req.params.id, req.body.items ?? []);
-    sendSuccess(res, menu);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 export default router;

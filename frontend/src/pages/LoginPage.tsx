@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { useAuthActions } from '../hooks/useAuth';
+import { FadeIn } from '../components/ui/FadeIn';
 
 /** Page de connexion — formulaire email/mot de passe. */
 export default function LoginPage() {
@@ -20,12 +21,11 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="rounded-2xl bg-white p-8 shadow-card">
-          <h1 className="text-2xl font-bold text-ink-900">Connexion</h1>
-          <p className="mt-2 text-sm text-ink-500">
-            Accédez à vos favoris et publiez des avis.
-          </p>
+      <FadeIn className="w-full max-w-md">
+        <div className="rounded-3xl bg-white p-8 shadow-card">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Espace membre</p>
+          <h1 className="mt-2 text-3xl font-bold text-ink-900">Connexion</h1>
+          <p className="mt-2 text-sm text-ink-500">Favoris, avis, et console restaurateur.</p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <Input
@@ -57,7 +57,7 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-      </div>
+      </FadeIn>
     </div>
   );
 }

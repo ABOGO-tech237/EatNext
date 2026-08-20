@@ -100,6 +100,7 @@ model Restaurant {
   @@index([status, avgRating])
   @@index([status, name])
   @@index([status, city])
+  @@index([ownerId])
   @@index([lat, lng])
   @@index([source])
   @@map("restaurants")
@@ -111,6 +112,7 @@ model MenuItem {
   name         String
   price        Float
   description  String?
+  category     String?
   sortOrder    Int      @default(0) @map("sort_order")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

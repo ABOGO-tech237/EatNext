@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import * as authApi from '../lib/api/auth';
 import { useAuthStore } from '../stores/authStore';
@@ -7,7 +7,9 @@ import { useAuthStore } from '../stores/authStore';
 /** Hook centralisant login / register / logout avec navigation et toasts. */
 export function useAuthActions() {
   const navigate = useNavigate();
-  const { setAuth, logout: clearAuth } = useAuthStore();
+  const location = useLocation();
+  const { setAuth, logout: clearAuth, setUser, setTokens, tokens } = useAuthStore();
+  const from = (location.state as { from?: string } | null)?.from;
 
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
@@ -15,18 +17,24 @@ export function useAuthActions() {
     onSuccess: (data) => {
       setAuth(data.user, data.tokens);
       toast.success(`Bienvenue, ${data.user.fullName} !`);
-      navigate('/');
+      const dest =
+        from ?? (data.user.role === 'owner' || data.user.role === 'admin' ? '/pro' : '/');
+      navigate(dest);
     },
     onError: () => toast.error('Identifiants incorrects.'),
   });
 
   const registerMutation = useMutation({
-    mutationFn: (payload: { fullName: string; email: string; password: string }) =>
-      authApi.register(payload),
+    mutationFn: (payload: {
+      fullName: string;
+      email: string;
+      password: string;
+      role?: 'user' | 'owner';
+    }) => authApi.register(payload),
     onSuccess: (data) => {
       setAuth(data.user, data.tokens);
       toast.success('Compte créé avec succès !');
-      navigate('/');
+      navigate(data.user.role === 'owner' ? '/pro/onboarding' : from ?? '/');
     },
     onError: () => toast.error('Impossible de créer le compte.'),
   });
@@ -40,5 +48,19 @@ export function useAuthActions() {
     },
   });
 
-  return { loginMutation, registerMutation, logoutMutation };
+  const refreshRole = async () => {
+    try {
+      const user = await authApi.getMe();
+      setUser(user);
+      if (tokens?.refreshToken) {
+        const next = await authApi.refreshTokens(tokens.refreshToken);
+        setTokens(next);
+      }
+      return user;
+    } catch {
+      return useAuthStore.getState().user;
+    }
+  };
+
+  return { loginMutation, registerMutation, logoutMutation, refreshRole };
 }

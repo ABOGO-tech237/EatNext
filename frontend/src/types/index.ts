@@ -1,7 +1,8 @@
 /** Types partagés alignés sur le schéma Prisma / l'API backend EatNext. */
 
 export type UserRole = 'user' | 'owner' | 'admin';
-export type RestaurantSource = 'USER_SUBMITTED' | 'OSM_SYNC';
+
+export type RestaurantSource = 'USER_SUBMITTED' | 'OSM_SYNC' | 'AYILAA_IMPORT';
 
 export interface User {
   id: string;
@@ -19,6 +20,7 @@ export interface AuthTokens {
 
 export interface Restaurant {
   id: string;
+  ownerId?: string | null;
   name: string;
   description?: string | null;
   address: string;
@@ -38,7 +40,6 @@ export interface Restaurant {
   openingHours?: string | null;
   phone?: string | null;
   website?: string | null;
-  owner?: { id: string; fullName: string; email?: string } | null;
   /** Distance en mètres — renvoyée par la recherche géographique. */
   distance?: number;
 }
@@ -62,9 +63,9 @@ export interface Favorite {
 }
 
 export interface PaginationMeta {
-  page?: number;
-  limit?: number;
-  total?: number;
+  page: number;
+  limit: number;
+  total: number;
   source?: string;
   osmCount?: number;
   dbCount?: number;
@@ -91,4 +92,18 @@ export interface SearchParams {
   sortBy?: 'rating' | 'distance' | 'name';
   order?: 'asc' | 'desc';
   includeOsm?: boolean;
+}
+
+export interface MenuItem {
+  name: string;
+  description?: string | null;
+  price: number;
+  category?: string | null;
+}
+
+export interface RestaurantStats {
+  total: number;
+  published: number;
+  cities: number;
+  reviews: number;
 }

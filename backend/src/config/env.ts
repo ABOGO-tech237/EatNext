@@ -1,6 +1,9 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
 
-dotenv.config();
+const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+dotenv.config({ path: path.join(backendRoot, '.env') });
 
 function required(key: string, fallback?: string): string {
   const value = process.env[key] ?? fallback;

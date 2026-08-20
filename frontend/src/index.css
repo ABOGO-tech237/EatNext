@@ -13,9 +13,59 @@
     @apply font-sans text-ink-900 bg-ink-50;
   }
 
-  /* Focus visible cohérent sur tous les éléments interactifs */
   :focus-visible {
     @apply outline-none ring-2 ring-brand-500 ring-offset-2;
+  }
+}
+
+@layer components {
+  .hero-orb {
+    animation: hero-orb 8s ease-in-out infinite;
+  }
+
+  .hero-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.7) 1px, transparent 1px);
+    background-size: 22px 22px;
+    opacity: 0.06;
+  }
+
+  .hero-underline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.06em;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: hero-underline 480ms cubic-bezier(0.22, 1, 0.36, 1) 200ms forwards;
+  }
+
+  .nav-drawer {
+    animation: slide-down 180ms ease-out;
+  }
+
+  .sheet-right {
+    animation: slide-in-right 220ms ease-out;
+  }
+
+  .overlay-fade {
+    animation: fade-in 180ms ease-out;
+  }
+
+  .sheet-up {
+    animation: sheet-up 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, #f5f5f4 0%, #e7e5e4 45%, #f5f5f4 90%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s ease-in-out infinite;
+  }
+
+  .heart-pop {
+    animation: heart-pop 180ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
@@ -35,7 +85,6 @@
   }
 }
 
-/* Leaflet : corrige le z-index par rapport au header sticky */
 .leaflet-container {
   font-family: inherit;
   z-index: 0;
@@ -43,4 +92,146 @@
 
 .leaflet-popup-content-wrapper {
   border-radius: 12px;
+}
+
+.eatnext-marker {
+  background: transparent;
+  border: none;
+}
+
+.eatnext-marker-pin {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 8px auto 0;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: #d32323;
+  box-shadow: 0 4px 10px rgba(28, 25, 23, 0.25);
+}
+
+.eatnext-marker-pin--osm {
+  background: #1c1917;
+}
+
+.eatnext-marker-pin--selected {
+  width: 24px;
+  height: 24px;
+  margin-top: 4px;
+  background: #d32323;
+  box-shadow: 0 6px 14px rgba(211, 35, 35, 0.35);
+}
+
+.eatnext-marker-pin--mini {
+  width: 10px;
+  height: 10px;
+  margin-top: 12px;
+  border-radius: 50%;
+  transform: none;
+  opacity: 0.7;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes hero-orb {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.1;
+  }
+  50% {
+    transform: translate(12px, -10px) scale(1.06);
+    opacity: 0.16;
+  }
+}
+
+@keyframes hero-underline {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: scale(0.85);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-orb,
+  .hero-underline,
+  .nav-drawer,
+  .sheet-right,
+  .sheet-up,
+  .overlay-fade,
+  .shimmer,
+  .heart-pop {
+    animation: none;
+  }
+
+  .hero-underline {
+    transform: scaleX(1);
+  }
+
+  .group-hover\:scale-105:hover,
+  .hover\:-translate-y-1:hover,
+  .hover\:scale-105:hover,
+  .group-hover\:scale-\[1\.04\]:hover {
+    transform: none;
+  }
 }
