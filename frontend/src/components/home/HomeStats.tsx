@@ -10,11 +10,14 @@ const ITEMS = [
 ];
 
 /**
- * Preuve sociale une ligne — dans le hero.
+ * Preuve sociale — on cache les compteurs à zéro.
  */
 export function HomeStats() {
   const { data: stats } = useRestaurantStats();
   const reduce = useReducedMotion();
+  const visible = ITEMS.filter((item) => (stats?.[item.key] ?? 0) > 0);
+
+  if (visible.length === 0) return null;
 
   return (
     <motion.p
@@ -23,7 +26,7 @@ export function HomeStats() {
       animate={fadeIn.animate}
       transition={{ duration: DURATION.enter, delay: reduce ? 0 : 0.56, ease: easeOut }}
     >
-      {ITEMS.map(({ label, key }, i) => (
+      {visible.map(({ label, key }, i) => (
         <span key={label} className="inline-flex items-baseline gap-1">
           {i > 0 && <span className="mr-3 hidden text-white/30 sm:inline" aria-hidden>|</span>}
           <CountUp value={stats?.[key]} className="font-semibold tabular-nums text-white" />

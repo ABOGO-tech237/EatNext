@@ -3,6 +3,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useSearchFilters } from '../../hooks/useRestaurants';
 import type { SearchParams } from '../../types';
+import { isUsefulCuisine } from '../../lib/filters';
 import { PRICE_RANGE_TIERS } from '../../lib/utils';
 
 interface SearchFiltersProps {
@@ -17,7 +18,7 @@ interface SearchFiltersProps {
 export function SearchFilters({ params, onChange, onSearch }: SearchFiltersProps) {
   const { data } = useSearchFilters();
   const cities = data?.cities ?? [];
-  const cuisines = data?.cuisines ?? [];
+  const cuisines = (data?.cuisines ?? []).filter((c) => isUsefulCuisine(c.name));
   const update = (patch: Partial<SearchParams>) => onChange({ ...params, ...patch });
 
   return (
