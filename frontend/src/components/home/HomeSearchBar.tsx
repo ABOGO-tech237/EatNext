@@ -4,35 +4,36 @@ import { MapPin } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { DURATION, easeOut, searchLand } from '../../lib/motion';
-import { CAMEROON_CITIES } from '../../lib/utils';
+import { useSearchFilters } from '../../hooks/useRestaurants';
+import { searchParamsToQuery } from '../../lib/searchQuery';
 
 /**
- * Barre de recherche — même silhouette que la search (h-12, rounded-2xl, shadow-card).
+ * Barre de recherche — villes importées depuis la base.
  */
 export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
+  const { data } = useSearchFilters();
   const [q, setQ] = useState('');
   const [city, setCity] = useState('');
+  const cities = data?.cities ?? [];
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
-    const params = new URLSearchParams();
-    if (q.trim()) params.set('q', q.trim());
-    if (city) params.set('city', city);
-    navigate(`/search?${params.toString()}`);
+    navigate(`/search?${searchParamsToQuery({ q: q.trim() || undefined, city: city || undefined })}`);
   };
 
   const locateMe = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const params = new URLSearchParams({
-          lat: String(pos.coords.latitude),
-          lng: String(pos.coords.longitude),
-          near: '1',
-        });
-        navigate(`/search?${params.toString()}`);
+        navigate(
+          `/search?${searchParamsToQuery({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            sortBy: 'distance',
+          })}`,
+        );
       },
       () => navigate('/search'),
     );
@@ -55,7 +56,7 @@ export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
         id="home-q"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Ndolé, grillades, terrasse…"
+        placeholder="Restaurant, cuisine, quartier…"
         className="h-12 rounded-xl border-0 bg-transparent px-4 text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-0"
       />
       <select
@@ -65,7 +66,7 @@ export function HomeSearchBar({ delay = 0.32 }: { delay?: number }) {
         className="h-12 rounded-xl border-0 bg-transparent px-3 text-sm text-ink-800 focus:outline-none"
       >
         <option value="">Toutes les villes</option>
-        {CAMEROON_CITIES.map((c) => (
+        {cities.map((c) => (
           <option key={c.name} value={c.name}>
             {c.name}
           </option>

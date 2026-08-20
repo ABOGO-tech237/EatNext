@@ -22,6 +22,8 @@ const NEARBY_TTL = 300;
 const STATS_TTL = 600;
 
 const STATS_CACHE_KEY = 'restaurants:stats:v2';
+const FILTERS_CACHE_KEY = 'restaurants:filters:v1';
+const FILTERS_TTL = 300;
 
 /** Champs liste : pas de `osmTags` (JSON volumineux) pour garder la recherche rapide. */
 const LIST_SELECT = {
@@ -109,6 +111,8 @@ function buildWhere(params: RestaurantSearchParams): Prisma.RestaurantWhereInput
       { name: { contains: params.q, mode: 'insensitive' } },
       { description: { contains: params.q, mode: 'insensitive' } },
       { cuisineType: { contains: params.q, mode: 'insensitive' } },
+      { city: { contains: params.q, mode: 'insensitive' } },
+      { address: { contains: params.q, mode: 'insensitive' } },
     ];
   }
   if (params.city) where.city = { equals: params.city, mode: 'insensitive' };
@@ -586,6 +590,63 @@ export async function getRestaurantStats() {
   };
   await cacheSet(STATS_CACHE_KEY, stats, STATS_TTL);
   return stats;
+}
+
+export interface SearchFilterCity {
+  name: string;
+  count: number;
+  lat: number;
+  lng: number;
+}
+
+export interface SearchFilterCuisine {
+  name: string;
+  count: number;
+}
+
+/** Villes et types de cuisine réellement présents sur les fiches publiées. */
+export async function getSearchFilters() {
+  const cached = await cacheGet<{
+    cities: SearchFilterCity[];
+    cuisines: SearchFilterCuisine[];
+  }>(FILTERS_CACHE_KEY);
+  if (cached) return cached;
+
+  const [cityGroups, cuisineGroups] = await Promise.all([
+    prisma.restaurant.groupBy({
+      by: ['city'],
+      where: { status: 'published' },
+      _count: { _all: true },
+      _avg: { lat: true, lng: true },
+    }),
+    prisma.restaurant.groupBy({
+      by: ['cuisineType'],
+      where: { status: 'published' },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const cities = cityGroups
+    .filter((g) => g.city.trim().length > 0)
+    .map((g) => ({
+      name: g.city,
+      count: g._count._all,
+      lat: g._avg.lat ?? 3.8667,
+      lng: g._avg.lng ?? 11.5167,
+    }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'fr'));
+
+  const cuisines = cuisineGroups
+    .filter((g) => g.cuisineType.trim().length > 0)
+    .map((g) => ({
+      name: g.cuisineType,
+      count: g._count._all,
+    }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'fr'));
+
+  const result = { cities, cuisines };
+  await cacheSet(FILTERS_CACHE_KEY, result, FILTERS_TTL);
+  return result;
 }
 
 /** Alias historique — mêmes compteurs, clés `restaurants` / `reviews` / `cities`. */
