@@ -6,7 +6,6 @@ import { Badge } from '../ui/Badge';
 import { Rating } from '../ui/Rating';
 import { PriceRange } from '../ui/PriceRange';
 import { PhotoCover } from '../ui/PhotoCover';
-import { SourceBadge } from './SourceBadge';
 import {
   cn,
   firstSentence,
@@ -152,9 +151,6 @@ export function RestaurantCard({
         </div>
 
         <div className={cn('p-4', compact && 'p-3', featured && 'sm:flex sm:flex-col sm:justify-center sm:p-6')}>
-          <div className="mb-2">
-            <SourceBadge restaurant={restaurant} />
-          </div>
           <div className="flex items-start justify-between gap-2">
             <h3
               className={cn(
