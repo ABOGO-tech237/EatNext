@@ -18,6 +18,7 @@ import {
   geocodeAddress,
   initNominatimCache,
 } from '../src/utils/nominatim.js';
+import { fetchAyilaaDescription } from '../src/utils/ayilaaDescription.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_JSONL = path.resolve(__dirname, '../../ayilaa_data.jsonl');
@@ -49,6 +50,7 @@ function parseArgs() {
   return {
     purge: !args.includes('--no-purge'),
     fallbackCentroid: args.includes('--fallback-centroid'),
+    skipFetchDesc: args.includes('--skip-fetch-desc'),
     limit: (() => {
       const i = args.indexOf('--limit');
       return i >= 0 ? parseInt(args[i + 1] ?? '0', 10) : 0;
@@ -242,13 +244,21 @@ async function main() {
     }
 
     const photos = (record.images ?? []).filter(Boolean).slice(0, 20);
+    let description = record.description?.trim() || null;
+    if (!description && record.url && !opts.skipFetchDesc) {
+      try {
+        description = await fetchAyilaaDescription(record.url);
+      } catch (err) {
+        console.warn(`[import-ayilaa] Description Ayilaa indisponible id=${record.id}:`, err);
+      }
+    }
 
     await prisma.restaurant.upsert({
       where: { osmId },
       create: {
         osmId,
         name,
-        description: buildDescription(record, city, name),
+        description,
         address,
         city,
         lat: geo.lat,
@@ -267,7 +277,7 @@ async function main() {
       },
       update: {
         name,
-        description: buildDescription(record, city, name),
+        description,
         address,
         city,
         lat: geo.lat,

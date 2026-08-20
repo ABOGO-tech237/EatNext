@@ -237,14 +237,14 @@ def scrape_detail(session, url: str) -> dict:
     phone_match = re.search(r"\+?237\s?\d{9}", full_text)
     data["telephone"] = clean_text(phone_match.group(0)) if phone_match else None
 
-    # Description : paragraphes après le titre "Aperçu" jusqu'à "Découvrez d'autres"
-    desc_match = re.search(
-        rf"{re.escape(data['nom'] or '')}\s*\n(.+?)(?:Découvrez d'autres|Horaires|Avis des clients)",
-        full_text,
-        re.DOTALL,
+    # Description : bloc Aperçu (`itemprop="description"`), pas le meta site.
+    desc_html = re.search(
+        r'<p[^>]*itemprop="description"[^>]*>([\s\S]*?)</div>',
+        resp.text,
+        re.IGNORECASE,
     )
-    if desc_match:
-        data["description"] = clean_text(desc_match.group(1))[:3000]
+    if desc_html:
+        data["description"] = clean_text(re.sub(r"<[^>]+>", " ", desc_html.group(1)))[:3000]
     else:
         data["description"] = None
 

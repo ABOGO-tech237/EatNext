@@ -15,6 +15,7 @@
     "db:bootstrap": "tsx scripts/bootstrap-osm.ts",
     "db:import-ayilaa": "tsx scripts/import-ayilaa.ts",
     "db:backfill-photos": "tsx scripts/backfill-photos.ts",
+    "db:backfill-ayilaa-desc": "tsx scripts/backfill-ayilaa-descriptions.ts",
     "lint": "eslint src --ext .ts"
   },
   "prisma": {
