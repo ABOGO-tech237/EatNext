@@ -83,6 +83,40 @@ export function priceRangeFromXaf(xaf: number | undefined): number {
   return 4;
 }
 
+/** Texte lisible à partir des champs Ayilaa (le JSONL n’a presque jamais `description`). */
+export function buildDescription(record: AyilaaRecord, city: string, name: string): string {
+  const raw = record.description?.trim();
+  if (raw && raw.length > 12) return raw;
+
+  const escape = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const quartier = record.quartier
+    ?.replace(new RegExp(escape, 'gi'), '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const loc =
+    record.localisation?.trim() ||
+    record.adresse?.trim() ||
+    record.localisation_brute?.trim();
+  const cats = record.categories?.trim();
+  const price = record.prix_a_partir_de_xaf;
+
+  const parts: string[] = [];
+  if (cats) parts.push(cats);
+  if (quartier && quartier.toLowerCase() !== city.toLowerCase()) {
+    parts.push(`quartier ${quartier}`);
+  }
+  if (loc && loc.toLowerCase() !== city.toLowerCase()) {
+    parts.push(loc);
+  }
+  parts.push(city);
+  if (price && price > 0) {
+    const formatted = Math.round(price).toLocaleString('fr-FR').replace(/\u202f/g, ' ');
+    parts.push(`à partir de ${formatted} FCFA`);
+  }
+
+  return parts.filter(Boolean).join(' · ');
+}
+
 export function inferCuisineType(record: AyilaaRecord): string {
   const url = (record.url ?? '').toLowerCase();
   const cats = (record.categories ?? '').toLowerCase();
@@ -214,7 +248,7 @@ async function main() {
       create: {
         osmId,
         name,
-        description: record.description ?? null,
+        description: buildDescription(record, city, name),
         address,
         city,
         lat: geo.lat,
@@ -233,7 +267,7 @@ async function main() {
       },
       update: {
         name,
-        description: record.description ?? null,
+        description: buildDescription(record, city, name),
         address,
         city,
         lat: geo.lat,

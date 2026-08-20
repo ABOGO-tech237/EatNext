@@ -102,7 +102,9 @@ export function RestaurantCard({
   const photos = restaurant.photos.filter(Boolean);
   const distance = formatDistance(restaurant.distance);
   const neighborhood = neighborhoodFromAddress(restaurant.address);
-  const excerpt = firstSentence(restaurant.description);
+  const excerpt =
+    firstSentence(restaurant.description) ??
+    [neighborhood, restaurant.city, restaurant.cuisineType].filter(Boolean).join(' · ');
   const href =
     restaurant.id.startsWith('osm-') && restaurant.osmType && restaurant.osmId
       ? `/osm/${restaurant.osmType}/${restaurant.osmId}`
@@ -176,9 +178,9 @@ export function RestaurantCard({
             <Rating value={restaurant.avgRating} count={restaurant.reviewCount} size="sm" />
           </div>
 
-          {!compact && excerpt && (
+          {(excerpt || restaurant.cuisineType) && (
             <p className={cn('mt-2 text-sm text-ink-500', featured ? 'line-clamp-3' : 'line-clamp-2')}>
-              {excerpt}
+              {excerpt ?? restaurant.cuisineType}
             </p>
           )}
         </div>
