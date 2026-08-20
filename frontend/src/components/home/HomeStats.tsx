@@ -21,7 +21,7 @@ export function HomeStats() {
 
   return (
     <motion.p
-      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-brand-100"
+      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-white/75"
       initial={reduce ? false : fadeIn.initial}
       animate={fadeIn.animate}
       transition={{ duration: DURATION.enter, delay: reduce ? 0 : 0.56, ease: easeOut }}

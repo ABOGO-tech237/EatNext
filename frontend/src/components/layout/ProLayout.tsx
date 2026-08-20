@@ -1,26 +1,24 @@
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { LayoutDashboard, Plus, Store } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import { BrandLogo } from '../brand/BrandLogo';
 import { cn } from '../../lib/utils';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
     'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
-    isActive ? 'bg-brand-600 text-white' : 'text-ink-300 hover:bg-ink-800 hover:text-white',
+    isActive ? 'bg-mint-500 text-brand-900' : 'text-white/75 hover:bg-white/10 hover:text-white',
   );
 
-/** Console restaurateur — densité Linear, accents rouge EatNext. */
+/** Console restaurateur — fond forêt, accents charte Crafti. */
 export function ProLayout() {
   const user = useAuthStore((s) => s.user);
 
   return (
     <div className="flex min-h-screen bg-ink-50">
       <aside className="hidden w-60 shrink-0 flex-col bg-ink-900 text-white md:flex">
-        <Link to="/pro" className="flex items-center gap-2 px-5 py-5 text-lg font-bold">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm text-white">
-            E
-          </span>
-          EatNext Pro
+        <Link to="/pro" className="flex items-center gap-2 px-4 py-5">
+          <BrandLogo tone="dark" layout="wordmark" markClassName="h-8 w-7" />
         </Link>
         <nav className="flex-1 space-y-1 px-3" aria-label="Console restaurateur">
           <NavLink to="/pro" end className={linkClass}>
@@ -45,8 +43,8 @@ export function ProLayout() {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-ink-100 bg-white px-4 py-3 md:hidden">
-          <Link to="/pro" className="font-bold text-ink-900">
-            EatNext Pro
+          <Link to="/pro" className="flex items-center">
+            <BrandLogo layout="wordmark" markClassName="h-7 w-6" />
           </Link>
           <Link to="/pro/onboarding" className="text-sm text-brand-600">
             Ajouter

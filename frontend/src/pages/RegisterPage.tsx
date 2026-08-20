@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { useAuthActions } from '../hooks/useAuth';
 import { cn } from '../lib/utils';
 import { FadeIn } from '../components/ui/FadeIn';
+import { BrandLogo } from '../components/brand/BrandLogo';
 
 /** Inscription — bascule Diner / Restaurateur (role owner). */
 export default function RegisterPage() {
@@ -26,6 +27,7 @@ export default function RegisterPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
       <FadeIn className="w-full max-w-md">
         <div className="rounded-3xl bg-white p-8 shadow-card">
+          <BrandLogo layout="wordmark" className="mb-6" />
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Rejoindre EatNext</p>
           <h1 className="mt-2 text-3xl font-bold text-ink-900">Créer un compte</h1>
           <p className="mt-2 text-sm text-ink-500">

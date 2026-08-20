@@ -11,7 +11,7 @@ interface RatingProps {
 
 /**
  * Affichage de la note moyenne avec étoiles pleines/demi/vides.
- * Style inspiré Yelp/TheFork — compact et lisible.
+ * Style compact — étoiles ambre, texte forêt.
  */
 export function Rating({ value, count, size = 'md', showValue = true, className }: RatingProps) {
   const starSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';

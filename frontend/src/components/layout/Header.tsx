@@ -1,19 +1,19 @@
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, LogOut, Menu, User, X } from 'lucide-react';
 import { useState } from 'react';
-import { useAuthStore, useIsAuthenticated } from '../../stores/authStore';
+import { useIsAuthenticated } from '../../stores/authStore';
 import { useAuthActions } from '../../hooks/useAuth';
 import { SearchBar } from '../search/SearchBar';
 import { queryToSearchParams, searchParamsToQuery } from '../../lib/searchQuery';
+import { BrandMark } from '../brand/BrandLogo';
 import { cn } from '../../lib/utils';
 
 /**
- * Navbar utile : logo, recherche, favoris, compte.
+ * Navbar utile : logo Crafti, recherche, favoris, compte.
  */
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAuth = useIsAuthenticated();
-  const user = useAuthStore((s) => s.user);
   const { logoutMutation } = useAuthActions();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,11 +31,15 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-ink-100 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
-        <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="EatNext — accueil">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-            E
+        <Link
+          to="/"
+          className="flex shrink-0 items-center gap-2"
+          aria-label="EatNext by Crafti Studio — accueil"
+        >
+          <BrandMark className="h-8 w-7" />
+          <span className="hidden text-lg font-extrabold tracking-tight text-brand-800 sm:inline">
+            EatNext
           </span>
-          <span className="hidden text-lg font-bold tracking-tight text-ink-900 sm:inline">EatNext</span>
         </Link>
 
         <div className="min-w-0 flex-1">

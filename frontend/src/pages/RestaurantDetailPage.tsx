@@ -368,13 +368,17 @@ export default function RestaurantDetailPage() {
             </section>
 
             {canClaim && (
-              <section className="rounded-2xl bg-brand-600 p-6 text-white">
-                <Store className="h-5 w-5 text-white" />
+              <section className="rounded-2xl bg-brand-800 p-6 text-white">
+                <Store className="h-5 w-5 text-mint-500" />
                 <p className="mt-3 text-xl font-semibold">C'est votre établissement ?</p>
-                <p className="mt-2 text-sm text-brand-100">
+                <p className="mt-2 text-sm text-white/75">
                   Revendiquez cette fiche plutôt que d’en créer une autre.
                 </p>
-                <Button className="mt-4 w-full" onClick={handleClaim} loading={claim.isPending}>
+                <Button
+                  className="mt-4 w-full bg-white text-brand-800 hover:bg-mint-500"
+                  onClick={handleClaim}
+                  loading={claim.isPending}
+                >
                   Revendiquer cette fiche
                 </Button>
               </section>
