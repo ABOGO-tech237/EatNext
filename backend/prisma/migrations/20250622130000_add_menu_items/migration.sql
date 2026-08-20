@@ -1,5 +1,4 @@
--- CreateTable
-CREATE TABLE "menu_items" (
+CREATE TABLE IF NOT EXISTS "menu_items" (
     "id" TEXT NOT NULL,
     "restaurant_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -12,8 +11,11 @@ CREATE TABLE "menu_items" (
     CONSTRAINT "menu_items_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "menu_items_restaurant_id_idx" ON "menu_items"("restaurant_id");
+CREATE INDEX IF NOT EXISTS "menu_items_restaurant_id_idx" ON "menu_items"("restaurant_id");
 
--- AddForeignKey
-ALTER TABLE "menu_items" ADD CONSTRAINT "menu_items_restaurant_id_fkey" FOREIGN KEY ("restaurant_id") REFERENCES "restaurants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "menu_items"
+    ADD CONSTRAINT "menu_items_restaurant_id_fkey"
+    FOREIGN KEY ("restaurant_id") REFERENCES "restaurants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

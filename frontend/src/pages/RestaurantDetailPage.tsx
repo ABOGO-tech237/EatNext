@@ -112,7 +112,7 @@ export default function RestaurantDetailPage() {
   };
 
   const mosaicMain = photos[0];
-  const mosaicSide = photos.slice(1, 5);
+  const mosaicSide = photos.length > 1 ? photos.slice(1, 3) : [undefined, undefined];
 
   return (
     <div className="bg-ink-50 pb-24 lg:pb-20">
@@ -131,7 +131,12 @@ export default function RestaurantDetailPage() {
             className="relative min-h-[14rem] overflow-hidden bg-ink-900 sm:col-span-2 sm:row-span-2 sm:min-h-0"
             onClick={() => mosaicMain && setLightbox(mosaicMain)}
           >
-            <PhotoCover src={mosaicMain} alt={restaurant.name} seed={restaurant.id} />
+            <PhotoCover
+              src={mosaicMain}
+              alt={restaurant.name}
+              seed={restaurant.id}
+              cuisine={restaurant.cuisineType}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-5 text-left text-white sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
@@ -163,14 +168,14 @@ export default function RestaurantDetailPage() {
               </div>
             </div>
           </button>
-          {mosaicSide.map((src) => (
+          {mosaicSide.map((src, i) => (
             <button
-              key={src}
+              key={src ?? `cover-${i}`}
               type="button"
               className="relative hidden overflow-hidden bg-ink-800 sm:block"
-              onClick={() => setLightbox(src)}
+              onClick={() => src && setLightbox(src)}
             >
-              <PhotoCover src={src} alt="" seed={src} />
+              <PhotoCover src={src} alt="" seed={`${restaurant.id}-${i}`} cuisine={restaurant.cuisineType} />
             </button>
           ))}
         </div>

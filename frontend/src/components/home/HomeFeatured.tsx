@@ -27,6 +27,10 @@ export function HomeFeatured() {
       <div className="mt-6">
         {isLoading ? (
           <RestaurantGridSkeleton />
+        ) : items.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-ink-200 bg-white px-4 py-10 text-sm text-ink-500">
+            Aucune table publiée pour l’instant. Importez Ayilaa ou lancez un bootstrap OSM.
+          </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {hero && (

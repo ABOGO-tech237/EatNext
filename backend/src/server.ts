@@ -18,15 +18,14 @@ async function main() {
 
   if (env.osmSyncOnStart) {
     try {
-      const osmCount = await prisma.restaurant.count({ where: { source: 'OSM_SYNC' } });
       const result = await bootstrapAllZones({
-        purge: env.osmPurgeNonOsm || osmCount === 0,
+        purge: env.osmPurgeNonOsm,
       });
       console.log(
-        `[startup] OSM bootstrap: ${result.totalSynced} restaurant(s) (${result.purged} purged)`,
+        `[startup] OSM sync: ${result.totalSynced} restaurant(s) (${result.purged} purged)`,
       );
     } catch (err) {
-      console.warn('[startup] OSM bootstrap skipped (Overpass unavailable?):', err);
+      console.warn('[startup] OSM sync skipped (Overpass unavailable?):', err);
     }
   }
 

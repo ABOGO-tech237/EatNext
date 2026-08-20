@@ -44,6 +44,7 @@ export function HomeCuisines() {
                       src={cover?.src}
                       alt={cat.label}
                       seed={cover?.seed ?? cat.value}
+                      cuisine={cat.value}
                     />
                   </div>
                 </div>

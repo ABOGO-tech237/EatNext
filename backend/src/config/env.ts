@@ -66,7 +66,7 @@ export const env = {
   overpassTimeoutMs: Number(process.env.OVERPASS_TIMEOUT_MS ?? 60000),
   overpassMaxRetries: Number(process.env.OVERPASS_MAX_RETRIES ?? 3),
   osmSyncZones: parseOsmSyncZones(),
-  osmSyncOnStart: parseBool(process.env.OSM_SYNC_ON_START, true),
+  osmSyncOnStart: parseBool(process.env.OSM_SYNC_ON_START, false),
   osmSyncIntervalHours: Number(process.env.OSM_SYNC_INTERVAL_HOURS ?? 24),
   osmPurgeNonOsm: parseBool(process.env.OSM_PURGE_NON_OSM, false),
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 900000),

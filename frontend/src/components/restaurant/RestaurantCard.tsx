@@ -32,10 +32,12 @@ function PhotoCarousel({
   photos,
   name,
   seed,
+  cuisine,
 }: {
   photos: string[];
   name: string;
   seed: string;
+  cuisine?: string | null;
 }) {
   const [i, setI] = useState(0);
   const total = photos.length;
@@ -48,7 +50,7 @@ function PhotoCarousel({
 
   return (
     <div className="relative h-full w-full">
-      <PhotoCover src={photos[i]} alt={name} seed={seed} />
+      <PhotoCover src={photos[i]} alt={name} seed={seed} cuisine={cuisine} />
       {total > 1 && (
         <>
           <button
@@ -128,9 +130,19 @@ export function RestaurantCard({
         >
           <div className="h-full w-full transition-transform duration-500 group-hover:scale-[1.04]">
             {photos.length > 1 ? (
-              <PhotoCarousel photos={photos} name={restaurant.name} seed={restaurant.id} />
+              <PhotoCarousel
+                photos={photos}
+                name={restaurant.name}
+                seed={restaurant.id}
+                cuisine={restaurant.cuisineType}
+              />
             ) : (
-              <PhotoCover src={photos[0]} alt={restaurant.name} seed={restaurant.id} />
+              <PhotoCover
+                src={photos[0]}
+                alt={restaurant.name}
+                seed={restaurant.id}
+                cuisine={restaurant.cuisineType}
+              />
             )}
           </div>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />

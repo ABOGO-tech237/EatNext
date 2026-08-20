@@ -1,2 +1,1 @@
--- AlterEnum
-ALTER TYPE "RestaurantSource" ADD VALUE 'AYILAA_IMPORT';
+ALTER TYPE "RestaurantSource" ADD VALUE IF NOT EXISTS 'AYILAA_IMPORT';

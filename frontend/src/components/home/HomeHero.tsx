@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { DURATION, easeOut } from '../../lib/motion';
 import { useIsAuthenticated } from '../../stores/authStore';
+import { HERO_COVER } from '../../lib/covers';
 import { HomeSearchBar } from './HomeSearchBar';
 import { HomeStats } from './HomeStats';
 
@@ -25,14 +26,21 @@ export function HomeHero() {
         };
 
   return (
-    <section className="relative min-h-[58vh] overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800 text-white">
+    <section className="relative min-h-[72vh] overflow-hidden bg-ink-900 text-white">
+      <img
+        src={HERO_COVER}
+        alt=""
+        className="hero-photo pointer-events-none absolute inset-0 h-full w-full object-cover"
+        aria-hidden
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-900/40 via-brand-800/55 to-ink-900/80" />
       <div className="hero-grid pointer-events-none absolute inset-0" aria-hidden />
       <div className="pointer-events-none absolute inset-0">
         <div className="hero-orb absolute -right-20 -top-20 h-96 w-96 rounded-full bg-white blur-3xl" />
         <div className="hero-orb absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-white blur-3xl [animation-delay:1.4s]" />
       </div>
 
-      <div className="relative mx-auto flex min-h-[58vh] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
+      <div className="relative mx-auto flex min-h-[72vh] max-w-4xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-20">
         <motion.p
           className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-100"
           {...enter(0, 8)}
