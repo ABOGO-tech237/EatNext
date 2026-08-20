@@ -15,7 +15,7 @@ export default function FavoritesPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="flex items-center gap-3">
-        <Heart className="h-7 w-7 text-brand-600 fill-brand-600" />
+        <Heart className="h-7 w-7 text-accent-600 fill-accent-600" />
         <div>
           <h1 className="text-2xl font-bold text-ink-900">Mes favoris</h1>
           <p className="text-sm text-ink-500">

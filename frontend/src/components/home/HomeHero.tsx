@@ -30,12 +30,12 @@ export function HomeHero() {
         className="hero-photo pointer-events-none absolute inset-0 h-full w-full object-cover"
         aria-hidden
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-900/40 via-brand-800/55 to-ink-900/80" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-900/45 via-brand-800/60 to-brand-900/85" />
 
       <div className="relative mx-auto flex min-h-[62vh] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
         {cities.length > 0 && (
           <motion.p
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-100"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-mint-500"
             {...enter(0, 8)}
           >
             {cities.join(' · ')}

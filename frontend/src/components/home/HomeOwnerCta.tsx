@@ -11,9 +11,10 @@ export function HomeOwnerCta() {
 
   return (
     <section className="px-4 pb-20 sm:px-6">
-      <FadeIn inView className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-ink-900 px-6 py-12 text-white sm:px-12 sm:py-14">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-600/40 blur-3xl" />
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-200">Restaurateurs</p>
+      <FadeIn inView className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-brand-800 px-6 py-12 text-white sm:px-12 sm:py-14">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-mint-500/35 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-accent-600/25 blur-3xl" />
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-mint-500">Restaurateurs</p>
         <h2 className="mt-3 max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
           Votre salle est déjà dans l’annuaire.
         </h2>
@@ -22,7 +23,7 @@ export function HomeOwnerCta() {
         </p>
         <Button
           size="lg"
-          className="mt-8 bg-white text-ink-900 hover:bg-brand-50"
+          className="mt-8 bg-white text-brand-800 hover:bg-mint-500"
           onClick={() => navigate(isAuth ? '/pro/onboarding' : '/register?role=owner')}
         >
           <Store className="h-5 w-5" />

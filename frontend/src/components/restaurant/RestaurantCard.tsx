@@ -200,7 +200,7 @@ export function RestaurantCard({
           className={cn(
             'absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full',
             'bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:bg-white',
-            isFavorite ? 'text-brand-600' : 'text-ink-400 hover:text-brand-500',
+            isFavorite ? 'text-accent-600' : 'text-ink-400 hover:text-accent-500',
           )}
           aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
         >
