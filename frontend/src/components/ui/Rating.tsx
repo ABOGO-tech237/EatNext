@@ -38,7 +38,7 @@ export function Rating({ value, count, size = 'md', showValue = true, className 
           {formatRating(value)}
         </span>
       )}
-      {count != null && (
+      {count != null && count > 0 && (
         <span className="text-sm text-ink-500">({count} avis)</span>
       )}
     </div>

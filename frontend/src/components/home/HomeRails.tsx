@@ -46,7 +46,7 @@ export function HomeRails() {
         {isLoading ? (
           <RailSkeleton />
         ) : (
-          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {items.map((r, i) => (
               <div key={r.id} className="w-[16.5rem] shrink-0 snap-start sm:w-[18rem]">
                 <RestaurantCard restaurant={r} compact index={i} />
