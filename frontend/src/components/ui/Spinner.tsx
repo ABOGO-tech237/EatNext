@@ -27,11 +27,11 @@ export function RestaurantGridSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="animate-pulse overflow-hidden rounded-2xl bg-white shadow-card">
-          <div className="aspect-[4/3] bg-ink-100" />
+        <div key={i} className="overflow-hidden rounded-2xl bg-white shadow-card">
+          <div className="shimmer aspect-[4/3]" />
           <div className="space-y-3 p-4">
-            <div className="h-5 w-3/4 rounded bg-ink-100" />
-            <div className="h-4 w-1/2 rounded bg-ink-100" />
+            <div className="shimmer h-5 w-3/4 rounded" />
+            <div className="shimmer h-4 w-1/2 rounded" />
           </div>
         </div>
       ))}

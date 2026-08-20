@@ -25,10 +25,6 @@ const sizes: Record<Size, string> = {
   lg: 'h-12 px-6 text-base rounded-xl',
 };
 
-/**
- * Bouton réutilisable avec états hover/disabled/loading.
- * Utilisé partout dans l'app pour une cohérence visuelle.
- */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading, disabled, children, ...props }, ref) => (
     <button

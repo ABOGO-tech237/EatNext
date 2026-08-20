@@ -1,0 +1,87 @@
+import type { ReactNode } from 'react';
+import { MapPin } from 'lucide-react';
+import type { SearchParams } from '../../types';
+import { cn, CUISINE_CHIPS, PRICE_RANGE_TIERS } from '../../lib/utils';
+
+interface SearchChipsProps {
+  params: SearchParams;
+  onChange: (params: SearchParams) => void;
+  onApply: (params: SearchParams) => void;
+  onLocate: () => void;
+}
+
+function Chip({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+        active
+          ? 'border-brand-600 bg-brand-600 text-white'
+          : 'border-ink-200 bg-white text-ink-700 hover:border-brand-200 hover:text-brand-700',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Chips cuisine / palier / note / près de moi.
+ */
+export function SearchChips({ params, onChange, onApply, onLocate }: SearchChipsProps) {
+  const apply = (patch: Partial<SearchParams>) => {
+    const next = { ...params, ...patch };
+    onChange(next);
+    onApply(next);
+  };
+
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {CUISINE_CHIPS.map((c) => (
+        <Chip
+          key={c.value}
+          active={params.cuisine === c.value}
+          onClick={() => apply({ cuisine: params.cuisine === c.value ? undefined : c.value })}
+        >
+          {c.label}
+        </Chip>
+      ))}
+      {PRICE_RANGE_TIERS.map((tier) => (
+        <Chip
+          key={tier.level}
+          active={params.priceRange === tier.level}
+          onClick={() =>
+            apply({ priceRange: params.priceRange === tier.level ? undefined : tier.level })
+          }
+        >
+          {tier.short}
+        </Chip>
+      ))}
+      {[4.5, 4].map((r) => (
+        <Chip
+          key={r}
+          active={params.minRating === r}
+          onClick={() => apply({ minRating: params.minRating === r ? undefined : r })}
+        >
+          {r}+
+        </Chip>
+      ))}
+      <Chip active={params.lat != null} onClick={onLocate}>
+        <span className="inline-flex items-center gap-1">
+          <MapPin className="h-3.5 w-3.5" />
+          Près de moi
+        </span>
+      </Chip>
+    </div>
+  );
+}

@@ -3,9 +3,9 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 
 /**
- * Layout global : Header sticky + contenu + Footer.
- * Pas de transition de route ici — remonter <Outlet /> à chaque navigation
- * casse les cartes Leaflet, les formulaires et provoque des flashs visuels.
+ * Layout global de l'application : Header sticky + zone de contenu + Footer.
+ * Utilisé comme route parente dans App.tsx ; les pages enfants s'affichent via <Outlet />.
+ * min-h-screen + flex-col garantit que le footer reste en bas même sur les pages courtes.
  */
 export function MainLayout() {
   return (

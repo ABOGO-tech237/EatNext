@@ -1,27 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as restaurantApi from '../lib/api/restaurants';
-import type { SearchParams } from '../types';
+import type { MenuItem, SearchParams } from '../types';
 
 /** Clés de cache React Query — centralisées pour invalidation cohérente. */
 export const restaurantKeys = {
   all: ['restaurants'] as const,
-  stats: () => [...restaurantKeys.all, 'stats'] as const,
   search: (params: SearchParams) => [...restaurantKeys.all, 'search', params] as const,
   detail: (id: string) => [...restaurantKeys.all, 'detail', id] as const,
-  nearby: (lat: number, lng: number, includeOsm: boolean) =>
-    [...restaurantKeys.all, 'nearby', lat, lng, includeOsm] as const,
+  reviews: (id: string) => [...restaurantKeys.all, 'reviews', id] as const,
+  nearby: (lat: number, lng: number, radius?: number, limit?: number) =>
+    [...restaurantKeys.all, 'nearby', lat, lng, radius, limit] as const,
+  stats: ['restaurants', 'stats'] as const,
+  mine: ['restaurants', 'mine'] as const,
+  menu: (id: string) => [...restaurantKeys.all, 'menu', id] as const,
 };
 
-/** Statistiques publiques (restaurants / avis / villes en base). */
-export function usePublicStats() {
-  return useQuery({
-    queryKey: restaurantKeys.stats(),
-    queryFn: () => restaurantApi.getPublicStats(),
-    staleTime: 120_000,
-  });
-}
-
-/** Hook de recherche avec mise en cache automatique. */
 export function useRestaurantSearch(params: SearchParams) {
   return useQuery({
     queryKey: restaurantKeys.search(params),
@@ -30,7 +23,6 @@ export function useRestaurantSearch(params: SearchParams) {
   });
 }
 
-/** Hook pour le détail d'un restaurant. */
 export function useRestaurant(id: string | undefined) {
   return useQuery({
     queryKey: restaurantKeys.detail(id ?? ''),
@@ -39,30 +31,81 @@ export function useRestaurant(id: string | undefined) {
   });
 }
 
-/** Restaurants à proximité — fusion BDD + OSM via l'API backend. */
+export function useRestaurantReviews(restaurantId: string | undefined) {
+  return useQuery({
+    queryKey: restaurantKeys.reviews(restaurantId ?? ''),
+    queryFn: () => restaurantApi.getRestaurantReviews(restaurantId!),
+    enabled: !!restaurantId,
+  });
+}
+
 export function useNearbyRestaurants(
-  lat: number,
-  lng: number,
-  radius: number,
-  includeOsm: boolean,
-  enabled = true,
+  lat: number | undefined,
+  lng: number | undefined,
+  radius = 1500,
+  limit = 4,
 ) {
   return useQuery({
-    queryKey: restaurantKeys.nearby(lat, lng, includeOsm),
-    queryFn: () => restaurantApi.getNearbyRestaurants(lat, lng, radius, 50, includeOsm),
-    enabled,
+    queryKey: restaurantKeys.nearby(lat ?? 0, lng ?? 0, radius, limit),
+    queryFn: () => restaurantApi.getNearbyRestaurants(lat!, lng!, radius, limit),
+    enabled: lat != null && lng != null,
     staleTime: 60_000,
   });
 }
 
-/** Synchronise une zone OSM → PostgreSQL via POST /restaurants/osm/sync. */
-export function useSyncOsmArea() {
+export function useRestaurantStats() {
+  return useQuery({
+    queryKey: restaurantKeys.stats,
+    queryFn: () => restaurantApi.getRestaurantStats(),
+    staleTime: 120_000,
+  });
+}
+
+export function useMyRestaurants() {
+  return useQuery({
+    queryKey: restaurantKeys.mine,
+    queryFn: () => restaurantApi.getMyRestaurants(),
+  });
+}
+
+export function useRestaurantMenu(id: string | undefined) {
+  return useQuery({
+    queryKey: restaurantKeys.menu(id ?? ''),
+    queryFn: () => restaurantApi.getRestaurantMenu(id!),
+    enabled: !!id,
+  });
+}
+
+export function useCreateReview(restaurantId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: { lat: number; lng: number; radius?: number; limit?: number }) =>
-      restaurantApi.syncOsmArea(params.lat, params.lng, params.radius, params.limit),
+    mutationFn: (payload: { rating: number; content?: string }) =>
+      restaurantApi.createReview(restaurantId, payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: restaurantKeys.reviews(restaurantId) });
+      queryClient.invalidateQueries({ queryKey: restaurantKeys.detail(restaurantId) });
+    },
+  });
+}
+
+export function useClaimRestaurant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => restaurantApi.claimRestaurant(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: restaurantKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: restaurantKeys.mine });
       queryClient.invalidateQueries({ queryKey: restaurantKeys.all });
+    },
+  });
+}
+
+export function useReplaceMenu(restaurantId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (items: MenuItem[]) => restaurantApi.replaceRestaurantMenu(restaurantId, items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: restaurantKeys.menu(restaurantId) });
     },
   });
 }

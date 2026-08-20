@@ -21,7 +21,31 @@ const DETAIL_TTL = 600;
 const NEARBY_TTL = 300;
 const STATS_TTL = 600;
 
-const STATS_CACHE_KEY = 'restaurants:stats:public';
+const STATS_CACHE_KEY = 'restaurants:stats:v2';
+
+/** Champs liste : pas de `osmTags` (JSON volumineux) pour garder la recherche rapide. */
+const LIST_SELECT = {
+  id: true,
+  ownerId: true,
+  name: true,
+  description: true,
+  address: true,
+  city: true,
+  lat: true,
+  lng: true,
+  cuisineType: true,
+  priceRange: true,
+  avgRating: true,
+  reviewCount: true,
+  photos: true,
+  status: true,
+  source: true,
+  osmId: true,
+  osmType: true,
+  openingHours: true,
+  phone: true,
+  website: true,
+} satisfies Prisma.RestaurantSelect;
 
 /** Requête homepage fréquente : pas de filtres, tri par note décroissante. */
 function isFeaturedSearch(params: RestaurantSearchParams, page: number, limit: number): boolean {
@@ -271,8 +295,10 @@ export async function getRestaurantById(id: string): Promise<RestaurantDetail> {
 }
 
 /**
- * Crée un restaurant pour le compte de l'utilisateur courant. Il est créé au
- * statut `pending` : il devra être approuvé par un admin avant publication.
+ * Crée un restaurant pour le compte de l'utilisateur courant.
+ * Politique v2 : publié immédiatement (badge « Non vérifié » côté UI),
+ * `source: USER_SUBMITTED`, promotion du rôle `user` → `owner`.
+ * Rejette les doublons (même nom, même ville, ~200 m).
  */
 export async function createRestaurant(
   userId: string,
@@ -286,18 +312,118 @@ export async function createRestaurant(
     cuisineType: string;
     priceRange: number;
     photos?: string[];
+    phone?: string;
+    website?: string;
+    openingHours?: string;
   },
 ) {
-  const restaurant = await prisma.restaurant.create({
-    data: {
-      ...data,
-      ownerId: userId,
-      status: 'pending',
-    },
+  const name = data.name.trim();
+  const city = data.city.trim();
+  const duplicate = await findPublishedDuplicate(name, city, data.lat, data.lng);
+  if (duplicate) {
+    throw new AppError(
+      'DUPLICATE_RESTAURANT',
+      `Un restaurant publié similaire existe déjà. Revendiquez-le plutôt (id : ${duplicate.id}).`,
+      409,
+    );
+  }
+
+  const restaurant = await prisma.$transaction(async (tx) => {
+    const created = await tx.restaurant.create({
+      data: {
+        name,
+        description: data.description,
+        address: data.address,
+        city,
+        lat: data.lat,
+        lng: data.lng,
+        cuisineType: data.cuisineType,
+        priceRange: data.priceRange,
+        photos: data.photos ?? [],
+        phone: data.phone,
+        website: data.website ? data.website : undefined,
+        openingHours: data.openingHours,
+        ownerId: userId,
+        source: 'USER_SUBMITTED',
+        status: 'published',
+      },
+    });
+    await tx.user.updateMany({
+      where: { id: userId, role: 'user' },
+      data: { role: 'owner' },
+    });
+    return created;
   });
-  // Invalide les listes de recherche en cache (un nouvel élément est apparu).
+
   await cacheDelPattern('restaurants:*');
   return restaurant;
+}
+
+/** Doublon publié : même nom (insensible à la casse) dans la même ville, à ~200 m. */
+async function findPublishedDuplicate(name: string, city: string, lat: number, lng: number) {
+  const candidates = await prisma.restaurant.findMany({
+    where: {
+      status: 'published',
+      city: { equals: city, mode: 'insensitive' },
+      name: { equals: name, mode: 'insensitive' },
+    },
+    select: { id: true, lat: true, lng: true, name: true },
+  });
+  return candidates.find((r) => haversineKm(lat, lng, r.lat, r.lng) * 1000 <= 200) ?? null;
+}
+
+/**
+ * Revendique une fiche existante. N'utilise pas `updateRestaurant` (contrôle
+ * propriétaire trop tôt). Idempotent si déjà propriétaire.
+ */
+export async function claimRestaurant(id: string, userId: string) {
+  const restaurant = await prisma.restaurant.findUnique({ where: { id } });
+  if (!restaurant) throw new AppError('RESTAURANT_NOT_FOUND', 'Restaurant introuvable.', 404);
+
+  if (restaurant.ownerId && restaurant.ownerId !== userId) {
+    throw new AppError(
+      'ALREADY_CLAIMED',
+      'Ce restaurant est déjà revendiqué par un autre propriétaire.',
+      409,
+    );
+  }
+
+  if (restaurant.ownerId === userId) {
+    return restaurant;
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.restaurant.update({
+      where: { id },
+      data: { ownerId: userId },
+    });
+    await tx.user.updateMany({
+      where: { id: userId, role: 'user' },
+      data: { role: 'owner' },
+    });
+    return claimed;
+  });
+
+  await cacheDelPattern('restaurants:*');
+  await cacheDelPattern(`restaurant:${id}:*`);
+  return updated;
+}
+
+/** Restaurants dont l'utilisateur est propriétaire (tous statuts). */
+export async function getMyRestaurants(userId: string, page = 1, limit = 20) {
+  const safeLimit = Math.min(limit, 50);
+  const where = { ownerId: userId };
+  const [items, total] = await Promise.all([
+    prisma.restaurant.findMany({
+      where,
+      select: LIST_SELECT,
+      skip: (page - 1) * safeLimit,
+      take: safeLimit,
+      orderBy: { updatedAt: 'desc' },
+    }),
+    prisma.restaurant.count({ where }),
+  ]);
+  return { items, total, page, limit: safeLimit };
 }
 
 /**
@@ -318,6 +444,9 @@ export async function updateRestaurant(
     cuisineType: string;
     priceRange: number;
     photos: string[];
+    phone: string;
+    website: string;
+    openingHours: string;
     status: RestaurantStatus;
   }>,
 ) {
@@ -327,7 +456,13 @@ export async function updateRestaurant(
     throw new AppError('FORBIDDEN', 'Vous ne pouvez pas modifier ce restaurant.', 403);
   }
 
-  const updated = await prisma.restaurant.update({ where: { id }, data });
+  const { status, ...safeData } = data;
+  const payload: Prisma.RestaurantUpdateInput = { ...safeData };
+  if (role === 'admin' && status) {
+    payload.status = status;
+  }
+
+  const updated = await prisma.restaurant.update({ where: { id }, data: payload });
   await cacheDelPattern('restaurants:*');
   await cacheDelPattern(`restaurant:${id}:*`);
   return updated;
@@ -344,10 +479,11 @@ export interface MenuItemInput {
   name: string;
   price: number;
   description?: string;
+  category?: string;
 }
 
-/** Menu d'un restaurant, trié par `sortOrder`. */
-export async function getRestaurantMenu(restaurantId: string) {
+/** Menu d'un restaurant, trié par `sortOrder` — tableau plat (API v2). */
+export async function getRestaurantMenu(restaurantId: string): Promise<MenuItemInput[]> {
   const restaurant = await prisma.restaurant.findUnique({
     where: { id: restaurantId },
     select: { id: true },
@@ -359,13 +495,26 @@ export async function getRestaurantMenu(restaurantId: string) {
     orderBy: { sortOrder: 'asc' },
   });
 
-  return { restaurantId, items };
+  return items.map((item) => ({
+    name: item.name,
+    price: item.price,
+    description: item.description ?? undefined,
+    category: item.category ?? undefined,
+  }));
 }
 
 /** Remplace intégralement le menu (transaction atomique). */
-export async function replaceRestaurantMenu(restaurantId: string, items: MenuItemInput[]) {
+export async function replaceRestaurantMenu(
+  restaurantId: string,
+  userId: string,
+  role: string,
+  items: MenuItemInput[],
+) {
   const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
   if (!restaurant) throw new AppError('RESTAURANT_NOT_FOUND', 'Restaurant introuvable.', 404);
+  if (role !== 'admin' && restaurant.ownerId !== userId) {
+    throw new AppError('FORBIDDEN', 'Vous ne pouvez pas modifier ce menu.', 403);
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.menuItem.deleteMany({ where: { restaurantId } });
@@ -376,12 +525,14 @@ export async function replaceRestaurantMenu(restaurantId: string, items: MenuIte
           name: item.name,
           price: item.price,
           description: item.description,
+          category: item.category,
           sortOrder: index,
         })),
       });
     }
   });
 
+  await cacheDelPattern(`restaurant:${restaurantId}:*`);
   return getRestaurantMenu(restaurantId);
 }
 
@@ -409,11 +560,16 @@ export async function recalculateRating(restaurantId: string) {
 }
 
 /** Compteurs publics pour la page d'accueil (données réelles en base). */
-export async function getPublicStats() {
-  const cached = await cacheGet<{ restaurants: number; reviews: number; cities: number }>(STATS_CACHE_KEY);
+export async function getRestaurantStats() {
+  const cached = await cacheGet<{
+    total: number;
+    published: number;
+    cities: number;
+    reviews: number;
+  }>(STATS_CACHE_KEY);
   if (cached) return cached;
 
-  const [restaurants, reviews, cityGroups] = await Promise.all([
+  const [published, reviews, cityGroups] = await Promise.all([
     prisma.restaurant.count({ where: { status: 'published' } }),
     prisma.review.count(),
     prisma.restaurant.groupBy({
@@ -423,10 +579,21 @@ export async function getPublicStats() {
   ]);
 
   const stats = {
-    restaurants,
-    reviews,
+    total: published,
+    published,
     cities: cityGroups.length,
+    reviews,
   };
   await cacheSet(STATS_CACHE_KEY, stats, STATS_TTL);
   return stats;
+}
+
+/** Alias historique — mêmes compteurs, clés `restaurants` / `reviews` / `cities`. */
+export async function getPublicStats() {
+  const stats = await getRestaurantStats();
+  return {
+    restaurants: stats.published,
+    reviews: stats.reviews,
+    cities: stats.cities,
+  };
 }

@@ -7,7 +7,8 @@ import { bootstrapAllZones } from '../src/services/osmBootstrap.service.js';
 import { backfillPhotosFromOsmTags } from '../src/services/osmSync.service.js';
 
 async function main() {
-  const result = await bootstrapAllZones({ purge: true });
+  const purge = process.env.OSM_PURGE_NON_OSM === 'true' || process.env.OSM_PURGE_NON_OSM === '1';
+  const result = await bootstrapAllZones({ purge });
   const photosUpdated = await backfillPhotosFromOsmTags();
   console.log('\nBootstrap complete.');
   for (const z of result.zones) {

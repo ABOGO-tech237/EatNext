@@ -34,9 +34,10 @@ export default function FavoritesPage() {
         </div>
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {favorites.map((fav) => (
+          {favorites.map((fav, i) => (
             <RestaurantCard
               key={fav.id}
+              index={i}
               restaurant={fav.restaurant}
               isFavorite
               onToggleFavorite={() =>

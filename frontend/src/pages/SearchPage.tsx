@@ -1,55 +1,51 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Map, List, Download } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { ChevronUp, SlidersHorizontal, X } from 'lucide-react';
 import { SearchFilters } from '../components/restaurant/SearchFilters';
+import { SearchChips } from '../components/restaurant/SearchChips';
 import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { RestaurantMap } from '../components/restaurant/RestaurantMap';
-import { Spinner, RestaurantGridSkeleton } from '../components/ui/Spinner';
+import { RestaurantGridSkeleton } from '../components/ui/Spinner';
 import { Button } from '../components/ui/Button';
-import {
-  useRestaurantSearch,
-  useNearbyRestaurants,
-  useSyncOsmArea,
-} from '../hooks/useRestaurants';
-import { useToggleFavorite, useFavorites } from '../hooks/useFavorites';
+import { useRestaurantSearch } from '../hooks/useRestaurants';
+import { useIsFavorite, useToggleFavorite } from '../hooks/useFavorites';
 import { useIsAuthenticated } from '../stores/authStore';
-import type { SearchParams, Restaurant } from '../types';
-import { cn } from '../lib/utils';
-
-type ViewMode = 'list' | 'map' | 'split';
-
-const NEARBY_RADIUS = 3000;
+import type { Restaurant, SearchParams } from '../types';
+import { CAMEROON_CITIES, cn } from '../lib/utils';
 
 /**
- * Page recherche — filtres BDD + mode proximité OSM.
- * La base PostgreSQL est alimentée uniquement via l'API backend (POST /osm/sync).
+ * Recherche : chips + une carte Leaflet toujours montée (sheet mobile).
  */
 export default function SearchPage() {
   const [urlParams] = useSearchParams();
   const isAuth = useIsAuthenticated();
   const toggleFavorite = useToggleFavorite();
-  const syncOsmArea = useSyncOsmArea();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapTall, setMapTall] = useState(false);
+  const [selected, setSelected] = useState<Restaurant | null>(null);
 
-  const initialParams: SearchParams = useMemo(
-    () => ({
+  const initialParams: SearchParams = useMemo(() => {
+    const lat = urlParams.get('lat');
+    const lng = urlParams.get('lng');
+    const price = urlParams.get('priceRange');
+    return {
       q: urlParams.get('q') ?? undefined,
       city: urlParams.get('city') ?? undefined,
       cuisine: urlParams.get('cuisine') ?? undefined,
-      sortBy: 'rating',
+      priceRange: price ? Number(price) : undefined,
+      lat: lat ? Number(lat) : undefined,
+      lng: lng ? Number(lng) : undefined,
+      radius: lat && lng ? 5000 : undefined,
+      sortBy: lat && lng ? 'distance' : 'rating',
       order: 'desc',
-      limit: 20,
-    }),
-    [urlParams],
-  );
+      limit: 24,
+    };
+  }, [urlParams]);
 
   const [params, setParams] = useState<SearchParams>(initialParams);
   const [activeParams, setActiveParams] = useState<SearchParams>(initialParams);
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
-  const [selected, setSelected] = useState<Restaurant | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([3.8667, 11.5167]);
-  const [osmMode, setOsmMode] = useState(false);
-  const [includeOsm, setIncludeOsm] = useState(true);
 
   useEffect(() => {
     setParams(initialParams);
@@ -57,229 +53,219 @@ export default function SearchPage() {
   }, [initialParams]);
 
   const { data, isLoading, isFetching } = useRestaurantSearch(activeParams);
-  const {
-    data: nearbyList,
-    isLoading: nearbyLoading,
-    refetch: refetchNearby,
-    isFetching: nearbyFetching,
-  } = useNearbyRestaurants(mapCenter[0], mapCenter[1], NEARBY_RADIUS, includeOsm, osmMode);
+  const restaurants = data?.items ?? [];
 
-  const searchRestaurants = data?.items ?? [];
-  const restaurants = osmMode ? (nearbyList ?? []) : searchRestaurants;
-  const loading = osmMode ? nearbyLoading : isLoading;
-  const fetching = osmMode ? nearbyFetching : isFetching;
-
-  const { data: favoritesList } = useFavorites(isAuth);
-  const favoriteIds = useMemo(
-    () => new Set(favoritesList?.map((f) => f.restaurantId)),
-    [favoritesList],
-  );
-
-  const handleSearch = () => setActiveParams({ ...params });
+  const defaultCity = CAMEROON_CITIES.find((c) => c.name === activeParams.city) ?? CAMEROON_CITIES[0];
+  const mapCenter: [number, number] = selected
+    ? [selected.lat, selected.lng]
+    : activeParams.lat != null && activeParams.lng != null
+      ? [activeParams.lat, activeParams.lng]
+      : [defaultCity.lat, defaultCity.lng];
 
   const locateMe = () => {
     if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setMapCenter([pos.coords.latitude, pos.coords.longitude]);
-        setOsmMode(true);
-      },
-      () => toast.error('Géolocalisation indisponible'),
-    );
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const next: SearchParams = {
+        ...params,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        radius: 5000,
+        sortBy: 'distance',
+      };
+      setParams(next);
+      setActiveParams(next);
+    });
   };
 
-  /** POST /restaurants/osm/sync — remplit PostgreSQL via l'API. */
-  const handleSyncZone = async () => {
-    try {
-      const result = await syncOsmArea.mutateAsync({
-        lat: mapCenter[0],
-        lng: mapCenter[1],
-        radius: NEARBY_RADIUS,
-        limit: 50,
-      });
-      toast.success(`${result.synced} restaurant(s) synchronisé(s) en base`);
-      if (osmMode) refetchNearby();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Échec de la synchronisation');
-    }
+  const onSelectFromList = (r: Restaurant) => setSelected(r);
+
+  const onSelectFromMap = (r: Restaurant) => {
+    setSelected(r);
+    document
+      .querySelector(`[data-restaurant-id="${r.id}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
+
+  const mapNode = (
+    <RestaurantMap
+      restaurants={restaurants}
+      center={mapCenter}
+      selectedId={selected?.id}
+      onSelect={onSelectFromMap}
+      height="100%"
+      layoutTick={`${mapOpen}-${mapTall}`}
+    />
+  );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-ink-900">Rechercher un restaurant</h1>
-        <p className="mt-1 text-sm text-ink-500">
-          {osmMode
-            ? `${restaurants.length} lieu(x) à proximité`
-            : `${data?.meta.total ?? '…'} résultat${(data?.meta.total ?? 0) > 1 ? 's' : ''}`}
-          {fetching && !loading && ' · mise à jour…'}
-        </p>
-      </div>
-
-      {!osmMode && (
-        <SearchFilters params={params} onChange={setParams} onSearch={handleSearch} />
-      )}
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-ink-700 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={osmMode}
-            onChange={(e) => setOsmMode(e.target.checked)}
-            className="rounded border-ink-300 text-brand-600"
-          />
-          Mode proximité (carte + OSM)
-        </label>
-        {osmMode && (
-          <>
-            <label className="flex items-center gap-2 text-sm text-ink-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeOsm}
-                onChange={(e) => setIncludeOsm(e.target.checked)}
-                className="rounded border-ink-300 text-brand-600"
-              />
-              Inclure OpenStreetMap
-            </label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSyncZone}
-              disabled={syncOsmArea.isPending}
-            >
-              <Download className="h-4 w-4 mr-1.5" />
-              {syncOsmArea.isPending ? 'Sync…' : 'Synchroniser la zone'}
-            </Button>
-          </>
-        )}
-        <div className="flex-1" />
-        <div className="flex rounded-xl border border-ink-200 bg-white p-1">
-          {([
-            { mode: 'list' as const, icon: List, label: 'Liste' },
-            { mode: 'split' as const, icon: Map, label: 'Split' },
-            { mode: 'map' as const, icon: Map, label: 'Carte' },
-          ]).map(({ mode, icon: Icon, label }) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setViewMode(mode)}
-              className={cn(
-                'hidden sm:flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
-                viewMode === mode ? 'bg-brand-600 text-white' : 'text-ink-600 hover:bg-ink-50',
-                mode === 'split' && 'hidden lg:flex',
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
-        <Button variant="outline" size="sm" onClick={locateMe}>
-          Ma position
-        </Button>
-      </div>
-
-      {osmMode && (
-        <p className="mt-2 text-xs text-ink-500">
-          <span className="inline-block w-2 h-2 rounded-full bg-blue-600 mr-1" />
-          OSM (non sync)
-          <span className="inline-block w-2 h-2 rounded-full bg-green-700 ml-3 mr-1" />
-          En base EatNext — sync via API
-        </p>
-      )}
-
-      <div
-        className={cn(
-          'mt-4 gap-4',
-          viewMode === 'split' ? 'lg:grid lg:grid-cols-2 lg:items-start' : 'block',
-        )}
-      >
-        {(viewMode === 'list' || viewMode === 'split') && (
+    <div className="bg-ink-50">
+      <div className="border-b border-ink-100 bg-ink-50 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
           <div>
-            {loading ? (
-              <RestaurantGridSkeleton />
-            ) : restaurants.length === 0 ? (
-              <div className="rounded-2xl bg-white p-12 text-center shadow-card">
-                <p className="text-ink-500">
-                  {osmMode
-                    ? 'Aucun lieu dans cette zone. Essayez « Synchroniser la zone ».'
-                    : 'Aucun restaurant ne correspond à vos critères.'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {restaurants.map((r) => (
-                  <SearchResultCard
-                    key={r.id}
-                    restaurant={r}
-                    isAuth={isAuth}
-                    isFavorite={favoriteIds.has(r.id)}
-                    onSelect={() => {
-                      setSelected(r);
-                      setMapCenter([r.lat, r.lng]);
-                    }}
-                    onToggleFavorite={(id, isFav) =>
-                      toggleFavorite.mutate({ restaurantId: id, isFavorite: isFav })
-                    }
-                    favoriteLoading={toggleFavorite.isPending}
-                  />
-                ))}
-              </div>
-            )}
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Explorer</p>
+            <h1 className="text-2xl font-bold text-ink-900 sm:text-3xl">Tables à proximité</h1>
+            <p className="mt-1 text-sm text-ink-500">
+              {data?.meta.total ?? '…'} résultat{(data?.meta.total ?? 0) > 1 ? 's' : ''}
+              {isFetching && !isLoading && ' · mise à jour'}
+            </p>
           </div>
-        )}
-
-        {(viewMode === 'map' || viewMode === 'split') && (
-          <div
-            className={cn(
-              'sticky top-20',
-              viewMode === 'map' ? 'h-[70vh]' : 'h-[500px] lg:h-[calc(100vh-12rem)]',
-            )}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setFiltersOpen(true)} className="lg:hidden">
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtres
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setMapOpen((v) => !v)}
+              className="lg:hidden"
+            >
+              {mapOpen ? 'Liste' : 'Carte'}
+            </Button>
+          </div>
+        </div>
+        <div className="mx-auto mt-4 max-w-[1600px]">
+          <SearchChips
+            params={params}
+            onChange={setParams}
+            onApply={setActiveParams}
+            onLocate={locateMe}
+          />
+          <button
+            type="button"
+            className="mt-3 hidden text-sm font-medium text-brand-700 lg:inline"
+            onClick={() => setMoreOpen((v) => !v)}
           >
-            {loading ? (
-              <Spinner />
-            ) : (
-              <RestaurantMap
-                restaurants={restaurants}
-                center={mapCenter}
-                selectedId={selected?.id}
-                onSelect={(r) => {
-                  setSelected(r);
-                  setMapCenter([r.lat, r.lng]);
-                }}
-                height="100%"
+            {moreOpen ? 'Moins de filtres' : 'Plus de filtres'}
+          </button>
+          {moreOpen && (
+            <div className="mt-3 hidden lg:block">
+              <SearchFilters
+                compact
+                params={params}
+                onChange={setParams}
+                onSearch={() => setActiveParams({ ...params })}
               />
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
+
+      <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[minmax(0,1fr)_42%]">
+        <div className={cn('px-4 py-5 sm:px-6', mapOpen && 'pb-56 lg:pb-5')}>
+          {isLoading ? (
+            <RestaurantGridSkeleton />
+          ) : restaurants.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-ink-200 bg-white px-6 py-16 text-center">
+              <p className="text-2xl font-bold text-ink-900">Aucune table ici</p>
+              <p className="mt-2 text-sm text-ink-500">
+                Élargissez la ville, retirez un filtre, ou cherchez près de vous.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {restaurants.map((r, i) => (
+                <SearchResultCard
+                  key={r.id}
+                  index={i}
+                  restaurant={r}
+                  selected={selected?.id === r.id}
+                  isAuth={isAuth}
+                  onSelect={() => onSelectFromList(r)}
+                  onToggleFavorite={(id, isFav) =>
+                    toggleFavorite.mutate({ restaurantId: id, isFavorite: isFav })
+                  }
+                  favoriteLoading={toggleFavorite.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <aside
+          className={cn(
+            'lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:p-4',
+            mapOpen
+              ? cn(
+                  'sheet-up fixed inset-x-0 bottom-0 z-40 block rounded-t-3xl border-t border-ink-100 bg-ink-50 p-3 lg:static lg:rounded-none lg:border-0',
+                  mapTall ? 'h-[70vh]' : 'h-[42vh]',
+                )
+              : 'hidden lg:block',
+          )}
+        >
+          {mapOpen && (
+            <div className="mb-2 flex items-center justify-between lg:hidden">
+              <p className="text-sm font-semibold text-ink-800">Carte</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg p-1.5 text-ink-600"
+                  aria-label={mapTall ? 'Réduire la carte' : 'Agrandir la carte'}
+                  onClick={() => setMapTall((v) => !v)}
+                >
+                  <ChevronUp className={cn('h-5 w-5 transition-transform', mapTall && 'rotate-180')} />
+                </button>
+                <button type="button" className="rounded-lg p-1.5 text-ink-600" aria-label="Fermer la carte" onClick={() => setMapOpen(false)}>
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          )}
+          {mapNode}
+        </aside>
+      </div>
+
+      {filtersOpen && (
+        <div className="overlay-fade fixed inset-0 z-[60] bg-ink-900/50 p-4 lg:hidden" role="dialog" aria-label="Filtres">
+          <div className="sheet-right ml-auto flex h-full max-w-md flex-col rounded-2xl bg-ink-50 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Filtres</h2>
+              <button type="button" onClick={() => setFiltersOpen(false)} aria-label="Fermer les filtres">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <SearchFilters
+              params={params}
+              onChange={setParams}
+              onSearch={() => {
+                setActiveParams({ ...params });
+                setFiltersOpen(false);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function SearchResultCard({
   restaurant,
+  selected,
   isAuth,
-  isFavorite,
   onSelect,
   onToggleFavorite,
   favoriteLoading,
+  index,
 }: {
   restaurant: Restaurant;
+  selected: boolean;
   isAuth: boolean;
-  isFavorite: boolean;
   onSelect: () => void;
   onToggleFavorite: (id: string, isFav: boolean) => void;
   favoriteLoading: boolean;
+  index: number;
 }) {
+  const { data: isFavorite } = useIsFavorite(restaurant.id, isAuth);
+
   return (
     <div onMouseEnter={onSelect} onFocus={onSelect}>
       <RestaurantCard
         restaurant={restaurant}
+        selected={selected}
+        index={index}
         isFavorite={isFavorite}
-        onToggleFavorite={
-          isAuth ? () => onToggleFavorite(restaurant.id, isFavorite) : undefined
-        }
+        onToggleFavorite={isAuth ? () => onToggleFavorite(restaurant.id, !!isFavorite) : undefined}
         favoriteLoading={favoriteLoading}
       />
     </div>

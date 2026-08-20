@@ -84,8 +84,12 @@ Avec une base PostgreSQL hébergée (Neon, Supabase, Vercel Postgres…) :
 export DATABASE_URL="postgresql://..."
 npm run prisma:deploy
 npm run db:seed
-npm run db:bootstrap
+# Catalogue : Ayilaa (recommandé) ou OSM — jamais les deux avec purge
+npm run db:import-ayilaa -- --fallback-centroid
+# optionnel : npm run db:bootstrap
 ```
+
+`OSM_SYNC_ON_START` doit rester `false` en production. Ne pas lancer `db:bootstrap` avec `OSM_PURGE_NON_OSM=true` si Ayilaa est déjà importé.
 
 ### Lier GitHub (auto-deploy à chaque push)
 

@@ -63,7 +63,7 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
    cd backend
    npm install
    npx prisma generate
-   npx prisma db push
+   npx prisma migrate deploy
    npm run db:seed
    npm run db:import-ayilaa -- --fallback-centroid
    npm run dev
@@ -88,13 +88,19 @@ Vérifiez que Redis répond : `redis-cli ping` (réponse attendue : `PONG`).
 
 4. Ouvrir [http://localhost:5173](http://localhost:5173) — l’API est sur [http://localhost:3000/v1](http://localhost:3000/v1).
 
-### Compte admin (seed)
+### Comptes de test (seed)
 
 | Email | Mot de passe | Rôle |
 |-------|--------------|------|
+| `marie@example.com` | `Password123!` | user (diner) |
 | `admin@eatnext.africa` | `Password123!` | admin |
+| `owner@eatnext.africa` | `Password123!` | owner (console `/pro`) |
 
 Les restaurants proviennent du fichier **Ayilaa** (`db:import-ayilaa`) ou d'**OpenStreetMap** (`db:bootstrap`).
+
+Deux espaces dans la même app :
+- **Diner** (`/`) — accueil, recherche, carte, avis, favoris
+- **Console restaurateur** (`/pro`) — revendiquer une fiche, créer un établissement, menu, réponses aux avis
 
 ## Données Ayilaa
 
@@ -108,14 +114,14 @@ npm run db:import-ayilaa -- --no-purge --limit 10  # test sur 10 lignes
 
 Options : `--fallback-centroid`, `--no-purge`, `--limit N`, `--file chemin.jsonl`.
 
-Pour une base Ayilaa uniquement : `OSM_SYNC_ON_START=false` dans `backend/.env`.
+Le démarrage de l’API **n’importe plus OSM tout seul** (`OSM_SYNC_ON_START=false`). Pour enrichir depuis Overpass : `npm run db:bootstrap`. La purge des fiches hors OSM n’a lieu que si `OSM_PURGE_NON_OSM=true`.
 
 ## OpenStreetMap / Overpass (hybride)
 
 EatNext alimente PostgreSQL **uniquement depuis OpenStreetMap** (Overpass API) pour les zones configurées (Yaoundé et Douala par défaut). Voir [docs/OSM.md](docs/OSM.md).
 
 ```bash
-# Remplissage initial ou resync manuelle (purge les données hors OSM)
+# Enrichissement OSM (sans toucher à Ayilaa, sauf OSM_PURGE_NON_OSM=true)
 cd backend && npm run db:bootstrap
 ```
 

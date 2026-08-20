@@ -1,43 +1,35 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-/** Fusionne les classes Tailwind en évitant les conflits (pattern shadcn). */
+/** Fusionne les classes Tailwind en évitant les conflits. */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Niveaux de budget restaurant (1–4) avec fourchettes indicatives en FCFA. */
+/** Paliers de prix affichés en FCFA (XAF) — jamais d'euros. */
 export const PRICE_RANGE_TIERS = [
-  { level: 1, label: 'Économique', short: '< 3k F', full: 'Moins de 3 000 FCFA' },
-  { level: 2, label: 'Modéré', short: '3–8k F', full: '3 000 – 8 000 FCFA' },
-  { level: 3, label: 'Élevé', short: '8–20k F', full: '8 000 – 20 000 FCFA' },
-  { level: 4, label: 'Premium', short: '20k+ F', full: 'Plus de 20 000 FCFA' },
+  { level: 1, label: 'Moins de 5 000 FCFA', short: '≤ 5 000 F', symbol: 'F' },
+  { level: 2, label: '5 000 – 10 000 FCFA', short: '5–10k F', symbol: 'FF' },
+  { level: 3, label: '10 000 – 20 000 FCFA', short: '10–20k F', symbol: 'FFF' },
+  { level: 4, label: 'Plus de 20 000 FCFA', short: '≥ 20 000 F', symbol: 'FFFF' },
 ] as const;
 
-const priceFormatter = new Intl.NumberFormat('fr-CM', {
-  style: 'currency',
-  currency: 'XAF',
-  maximumFractionDigits: 0,
-});
-
-/** Montant en franc CFA (FCFA / XAF). */
+/** Formate un montant unitaire en FCFA (ex. 3 500 FCFA). */
 export function formatPrice(amount: number): string {
-  return priceFormatter.format(amount);
+  const formatted = Math.round(amount).toLocaleString('fr-FR').replace(/\u202f/g, ' ');
+  return `${formatted} FCFA`;
 }
 
-export function getPriceRangeTier(range: number) {
-  const level = Math.min(Math.max(Math.round(range), 1), 4);
-  return PRICE_RANGE_TIERS.find((t) => t.level === level) ?? PRICE_RANGE_TIERS[1];
-}
-
-/** Libellé complet de la fourchette de prix (accessibilité, filtres). */
+/** Fourchette qualitative 1–4 en FCFA. */
 export function formatPriceRange(range: number): string {
-  return getPriceRangeTier(range).full;
+  const tier = PRICE_RANGE_TIERS.find((t) => t.level === range) ?? PRICE_RANGE_TIERS[1];
+  return tier.short;
 }
 
-/** Libellé court pour les cartes et listes. */
-export function formatPriceRangeShort(range: number): string {
-  return getPriceRangeTier(range).short;
+/** Libellé long de la fourchette (filtres, fiche). */
+export function formatPriceRangeLabel(range: number): string {
+  const tier = PRICE_RANGE_TIERS.find((t) => t.level === range) ?? PRICE_RANGE_TIERS[1];
+  return tier.label;
 }
 
 /** Formate une note sur 5 avec une décimale. */
@@ -52,36 +44,76 @@ export function formatDistance(meters?: number): string | null {
   return `${(meters / 1000).toFixed(1)} km`;
 }
 
-/** POI OSM non encore persisté en base (id synthétique osm-*). */
-export function isOsmEphemeral(restaurant: { id: string }): boolean {
-  return restaurant.id.startsWith('osm-');
-}
+export const CAMEROON_CITIES = [
+  { name: 'Yaoundé', lat: 3.8667, lng: 11.5167 },
+  { name: 'Douala', lat: 4.0511, lng: 9.7679 },
+] as const;
 
-/** Restaurant avec UUID EatNext en PostgreSQL. */
-export function isPersistedInDb(restaurant: { id: string }): boolean {
-  return !restaurant.id.startsWith('osm-');
-}
+/** Source unique home + filtres — alignée sur le seed réel. */
+export const CUISINE_CHIPS = [
+  { label: 'Camerounaise', value: 'camerounaise' },
+  { label: 'Franco-africaine', value: 'franco-africaine' },
+  { label: 'Ouest-africaine', value: 'ouest-africaine' },
+  { label: 'Méditerranéenne', value: 'méditerranéenne' },
+  { label: 'Nigériane', value: 'nigériane' },
+  { label: 'Fruits de mer', value: 'fruits de mer' },
+] as const;
 
-/** Lien fiche : sync OSM via API si éphémère, sinon fiche locale. */
-export function restaurantDetailPath(restaurant: {
-  id: string;
-  osmType?: string | null;
-  osmId?: string | null;
-}): string {
-  if (isPersistedInDb(restaurant)) return `/restaurants/${restaurant.id}`;
-  if (restaurant.osmType && restaurant.osmId) {
-    return `/osm/${restaurant.osmType}/${restaurant.osmId}`;
+/** Dernier segment d’adresse (Bastos, Akwa) — ignore la ville si elle est en suffixe. */
+export function neighborhoodFromAddress(address?: string | null): string | null {
+  if (!address) return null;
+  const parts = address.split(',').map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+  const last = parts[parts.length - 1];
+  const cityNames = CAMEROON_CITIES.map((c) => c.name);
+  if (cityNames.includes(last as (typeof cityNames)[number])) {
+    return parts.length > 1 ? parts[parts.length - 2] : null;
   }
-  return `/restaurants/${restaurant.id}`;
+  return last;
 }
 
-/** Image par défaut lorsqu'aucune photo n'est disponible en base. */
-export const DEFAULT_RESTAURANT_PHOTO =
-  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800';
+/** Première phrase d’une description (extrait carte). */
+export function firstSentence(text?: string | null): string | null {
+  if (!text) return null;
+  const trimmed = text.trim();
+  const match = trimmed.match(/^[^.!?]+[.!?]?/);
+  return match?.[0]?.trim() || trimmed;
+}
 
-/** Photo principale : données API ou placeholder par défaut. */
-export function restaurantPhotoUrl(restaurant: { photos?: string[] }): string {
-  const photo = restaurant.photos?.[0];
-  if (photo && !photo.includes('staticmap.openstreetmap.de')) return photo;
-  return DEFAULT_RESTAURANT_PHOTO;
+export type OpeningStatus = { open: boolean; label: string };
+
+const OSM_DAY_ORDER = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] as const;
+const JS_TO_OSM = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
+
+/**
+ * Parseur conservateur : `Mo-Su 11:00-23:00` (pas de plage nuit, pas de multi-règles).
+ */
+export function openingStatus(hours?: string | null): OpeningStatus | null {
+  if (!hours) return null;
+  const match = hours
+    .trim()
+    .match(/^(Mo|Tu|We|Th|Fr|Sa|Su)(?:-(Mo|Tu|We|Th|Fr|Sa|Su))?\s+(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+
+  const startDay = match[1] as (typeof OSM_DAY_ORDER)[number];
+  const endDay = (match[2] ?? match[1]) as (typeof OSM_DAY_ORDER)[number];
+  const startMin = Number(match[3]) * 60 + Number(match[4]);
+  const endMin = Number(match[5]) * 60 + Number(match[6]);
+  if (endMin <= startMin) return null;
+
+  const startIdx = OSM_DAY_ORDER.indexOf(startDay);
+  const endIdx = OSM_DAY_ORDER.indexOf(endDay);
+  if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) return null;
+
+  const days = new Set(OSM_DAY_ORDER.slice(startIdx, endIdx + 1));
+  const now = new Date();
+  const today = JS_TO_OSM[now.getDay()];
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const open = days.has(today) && mins >= startMin && mins < endMin;
+  return { open, label: open ? 'Ouvert' : 'Fermé' };
+}
+
+/** Lien itinéraire Google Maps. */
+export function mapsDirectionsUrl(lat: number, lng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
