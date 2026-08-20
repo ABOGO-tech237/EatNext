@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useSearchFilters } from '../../hooks/useRestaurants';
+import { BrandLogo } from '../brand/BrandLogo';
 
 /**
- * Pied de page — villes dynamiques depuis la base.
+ * Pied de page — lockup Crafti, villes dynamiques depuis la base.
  */
 export function Footer() {
   const year = new Date().getFullYear();
@@ -14,12 +15,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-                E
-              </span>
-              <p className="text-lg font-bold text-ink-900">EatNext</p>
-            </div>
+            <BrandLogo layout="lockup" />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-500">
               Découvrez les meilleurs restaurants du Cameroun — avis, cartes et favoris en un
               clic. Prix en FCFA.
@@ -76,7 +72,7 @@ export function Footer() {
 
         <div className="mt-8 border-t border-ink-100 pt-6">
           <p className="text-center text-xs text-ink-400 sm:text-left">
-            © {year}. Tous droits réservés.
+            © {year} EatNext by Crafti Studio. Tous droits réservés.
           </p>
         </div>
       </div>

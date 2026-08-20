@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { DURATION, easeOut } from '../../lib/motion';
 import { HERO_COVER } from '../../lib/covers';
+import { pickHomeCities } from '../../lib/filters';
 import { useSearchFilters } from '../../hooks/useRestaurants';
 import { HomeSearchBar } from './HomeSearchBar';
 import { HomeStats } from './HomeStats';
@@ -11,7 +12,7 @@ import { HomeStats } from './HomeStats';
 export function HomeHero() {
   const reduce = useReducedMotion();
   const { data } = useSearchFilters();
-  const cities = data?.cities.map((c) => c.name).slice(0, 4) ?? [];
+  const cities = pickHomeCities(data?.cities ?? []).map((c) => c.name);
 
   const enter = (delay: number, y = 12) =>
     reduce
@@ -29,13 +30,15 @@ export function HomeHero() {
         alt=""
         className="hero-photo pointer-events-none absolute inset-0 h-full w-full object-cover"
         aria-hidden
+        fetchPriority="high"
+        decoding="async"
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-900/40 via-brand-800/55 to-ink-900/80" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-900/40 via-brand-800/50 to-brand-900/58" />
 
       <div className="relative mx-auto flex min-h-[62vh] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
         {cities.length > 0 && (
           <motion.p
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-100"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-mint-500"
             {...enter(0, 8)}
           >
             {cities.join(' · ')}

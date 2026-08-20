@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
   <defs>
     <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#7f1d1d"/>
-      <stop offset="0.45" stop-color="#b91c1c"/>
-      <stop offset="1" stop-color="#1c1917"/>
+      <stop offset="0" stop-color="#08341F"/>
+      <stop offset="0.45" stop-color="#0c4229"/>
+      <stop offset="1" stop-color="#052416"/>
     </linearGradient>
     <radialGradient id="lamp" cx="50%" cy="20%" r="55%">
-      <stop offset="0" stop-color="#fde68a" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#7f1d1d" stop-opacity="0"/>
+      <stop offset="0" stop-color="#0FFFA1" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#08341F" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="1600" height="900" fill="url(#night)"/>
   <rect width="1600" height="900" fill="url(#lamp)"/>
-  <ellipse cx="1180" cy="620" rx="320" ry="90" fill="#111" opacity="0.35"/>
-  <ellipse cx="1180" cy="520" rx="210" ry="160" fill="#854d0e" opacity="0.7"/>
-  <ellipse cx="1180" cy="500" rx="140" ry="90" fill="#166534" opacity="0.65"/>
-  <ellipse cx="420" cy="680" rx="280" ry="70" fill="#111" opacity="0.3"/>
-  <rect x="220" y="430" width="420" height="220" rx="24" fill="#292524" opacity="0.55"/>
-  <circle cx="360" cy="520" r="54" fill="#b45309"/>
-  <circle cx="500" cy="540" r="40" fill="#ca8a04"/>
-  <rect x="0" y="780" width="1600" height="120" fill="#0c0a09" opacity="0.45"/>
+  <ellipse cx="1180" cy="620" rx="320" ry="90" fill="#052416" opacity="0.45"/>
+  <ellipse cx="1180" cy="520" rx="210" ry="160" fill="#145536" opacity="0.7"/>
+  <ellipse cx="1180" cy="500" rx="140" ry="90" fill="#0FFFA1" opacity="0.25"/>
+  <ellipse cx="420" cy="680" rx="280" ry="70" fill="#052416" opacity="0.35"/>
+  <rect x="220" y="430" width="420" height="220" rx="24" fill="#08341F" opacity="0.55"/>
+  <circle cx="360" cy="520" r="54" fill="#D41414"/>
+  <circle cx="500" cy="540" r="40" fill="#0FFFA1" opacity="0.85"/>
+  <rect x="0" y="780" width="1600" height="120" fill="#052416" opacity="0.55"/>
 </svg>
