@@ -43,6 +43,14 @@ export default function SearchPage() {
   const { data, isLoading, isFetching } = useRestaurantSearch(params);
   const restaurants = data?.items ?? [];
 
+  useEffect(() => {
+    const bits = [params.q, params.city, params.cuisine].filter(Boolean);
+    document.title = bits.length ? `EatNext — ${bits.join(' · ')}` : 'EatNext — Recherche';
+    return () => {
+      document.title = 'EatNext';
+    };
+  }, [params.q, params.city, params.cuisine]);
+
   const defaultCity =
     filters?.cities.find((c) => c.name === params.city) ??
     filters?.cities[0] ??
