@@ -6,7 +6,7 @@ import { Badge } from '../ui/Badge';
 import { Rating } from '../ui/Rating';
 import { PriceRange } from '../ui/PriceRange';
 import { PhotoCover } from '../ui/PhotoCover';
-import { SourceBadge } from './SourceBadge';
+import { isUsefulCuisine } from '../../lib/filters';
 import {
   cn,
   firstSentence,
@@ -146,15 +146,14 @@ export function RestaurantCard({
             )}
           </div>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-          <Badge variant="brand" className="absolute left-3 top-3 capitalize">
-            {restaurant.cuisineType}
-          </Badge>
+          {isUsefulCuisine(restaurant.cuisineType) && (
+            <Badge variant="brand" className="absolute left-3 top-3 capitalize">
+              {restaurant.cuisineType}
+            </Badge>
+          )}
         </div>
 
         <div className={cn('p-4', compact && 'p-3', featured && 'sm:flex sm:flex-col sm:justify-center sm:p-6')}>
-          <div className="mb-2">
-            <SourceBadge restaurant={restaurant} />
-          </div>
           <div className="flex items-start justify-between gap-2">
             <h3
               className={cn(
@@ -176,9 +175,11 @@ export function RestaurantCard({
             </span>
           </div>
 
-          <div className="mt-2.5">
-            <Rating value={restaurant.avgRating} count={restaurant.reviewCount} size="sm" />
-          </div>
+          {restaurant.reviewCount > 0 && (
+            <div className="mt-2.5">
+              <Rating value={restaurant.avgRating} count={restaurant.reviewCount} size="sm" />
+            </div>
+          )}
 
           {!compact && excerpt && (
             <p className={cn('mt-2 text-sm text-ink-500', featured ? 'line-clamp-3' : 'line-clamp-2')}>

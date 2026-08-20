@@ -216,7 +216,8 @@ export function searchMockRestaurants(params: {
         r.name.toLowerCase().includes(q) ||
         r.description?.toLowerCase().includes(q) ||
         r.cuisineType.toLowerCase().includes(q) ||
-        r.city.toLowerCase().includes(q),
+        r.city.toLowerCase().includes(q) ||
+        r.address.toLowerCase().includes(q),
     );
   }
   if (params.city) {
@@ -233,4 +234,22 @@ export function searchMockRestaurants(params: {
   }
 
   return results;
+}
+
+/** Filtres dérivés du catalogue mock (même forme que GET /restaurants/filters). */
+export function getMockSearchFilters() {
+  const cityMap = new Map<string, { count: number; lat: number; lng: number }>();
+  const cuisineMap = new Map<string, number>();
+
+  for (const r of MOCK_RESTAURANTS) {
+    const city = cityMap.get(r.city);
+    if (city) city.count += 1;
+    else cityMap.set(r.city, { count: 1, lat: r.lat, lng: r.lng });
+    cuisineMap.set(r.cuisineType, (cuisineMap.get(r.cuisineType) ?? 0) + 1);
+  }
+
+  return {
+    cities: [...cityMap.entries()].map(([name, v]) => ({ name, ...v })),
+    cuisines: [...cuisineMap.entries()].map(([name, count]) => ({ name, count })),
+  };
 }

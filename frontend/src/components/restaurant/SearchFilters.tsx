@@ -1,42 +1,43 @@
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { useSearchFilters } from '../../hooks/useRestaurants';
 import type { SearchParams } from '../../types';
-import { CAMEROON_CITIES, CUISINE_CHIPS, PRICE_RANGE_TIERS } from '../../lib/utils';
+import { isUsefulCuisine } from '../../lib/filters';
+import { PRICE_RANGE_TIERS } from '../../lib/utils';
 
 interface SearchFiltersProps {
   params: SearchParams;
   onChange: (params: SearchParams) => void;
   onSearch: () => void;
-  /** Masque la barre texte (chips déjà présents au-dessus). */
-  compact?: boolean;
 }
 
 /**
- * Filtres avancés — cuisines unifiées avec la home.
+ * Filtres avancés — villes et cuisines importées depuis la base.
  */
-export function SearchFilters({ params, onChange, onSearch, compact }: SearchFiltersProps) {
+export function SearchFilters({ params, onChange, onSearch }: SearchFiltersProps) {
+  const { data } = useSearchFilters();
+  const cities = data?.cities ?? [];
+  const cuisines = (data?.cuisines ?? []).filter((c) => isUsefulCuisine(c.name));
   const update = (patch: Partial<SearchParams>) => onChange({ ...params, ...patch });
 
   return (
     <div className="space-y-4 rounded-2xl bg-white p-4 shadow-card">
-      {!compact && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <Input
-              label="Rechercher"
-              placeholder="Nom, cuisine, quartier…"
-              value={params.q ?? ''}
-              onChange={(e) => update({ q: e.target.value || undefined })}
-              onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-            />
-          </div>
-          <Button onClick={onSearch} className="shrink-0 sm:mb-0 sm:self-end">
-            <Search className="h-4 w-4" />
-            Rechercher
-          </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Input
+            label="Rechercher"
+            placeholder="Nom, cuisine, quartier…"
+            value={params.q ?? ''}
+            onChange={(e) => update({ q: e.target.value || undefined })}
+            onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+          />
         </div>
-      )}
+        <Button onClick={onSearch} className="shrink-0 sm:mb-0 sm:self-end">
+          <Search className="h-4 w-4" />
+          Rechercher
+        </Button>
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
@@ -47,9 +48,9 @@ export function SearchFilters({ params, onChange, onSearch, compact }: SearchFil
             className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           >
             <option value="">Toutes</option>
-            {CAMEROON_CITIES.map((c) => (
+            {cities.map((c) => (
               <option key={c.name} value={c.name}>
-                {c.name}
+                {c.name} ({c.count})
               </option>
             ))}
           </select>
@@ -63,9 +64,9 @@ export function SearchFilters({ params, onChange, onSearch, compact }: SearchFil
             className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm capitalize focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           >
             <option value="">Toutes</option>
-            {CUISINE_CHIPS.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
+            {cuisines.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name} ({c.count})
               </option>
             ))}
           </select>
@@ -116,11 +117,9 @@ export function SearchFilters({ params, onChange, onSearch, compact }: SearchFil
           <option value="name">Nom</option>
           <option value="distance">Distance</option>
         </select>
-        {compact && (
-          <Button size="sm" className="ml-auto" onClick={onSearch}>
-            Appliquer
-          </Button>
-        )}
+        <Button size="sm" className="ml-auto" onClick={onSearch}>
+          Appliquer
+        </Button>
       </div>
     </div>
   );

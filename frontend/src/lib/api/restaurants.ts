@@ -2,6 +2,7 @@ import { apiClient, withMockFallback } from './client';
 import {
   MOCK_RESTAURANTS,
   MOCK_REVIEWS,
+  getMockSearchFilters,
   searchMockRestaurants,
 } from '../mockData';
 import type {
@@ -11,6 +12,7 @@ import type {
   Restaurant,
   RestaurantStats,
   Review,
+  SearchFilterOptions,
   SearchParams,
 } from '../../types';
 
@@ -71,6 +73,17 @@ export async function getNearbyRestaurants(
 export async function getRestaurantStats(): Promise<RestaurantStats> {
   const { data } = await apiClient.get<ApiResponse<RestaurantStats>>('/restaurants/stats');
   return data.data;
+}
+
+/** Villes et cuisines distinctes des fiches publiées. */
+export async function getSearchFilters(): Promise<SearchFilterOptions> {
+  return withMockFallback(
+    async () => {
+      const { data } = await apiClient.get<ApiResponse<SearchFilterOptions>>('/restaurants/filters');
+      return data.data;
+    },
+    () => getMockSearchFilters(),
+  );
 }
 
 /** Restaurants de l'utilisateur connecté (owner). */

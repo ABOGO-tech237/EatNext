@@ -11,6 +11,7 @@ export const restaurantKeys = {
   nearby: (lat: number, lng: number, radius?: number, limit?: number) =>
     [...restaurantKeys.all, 'nearby', lat, lng, radius, limit] as const,
   stats: ['restaurants', 'stats'] as const,
+  filters: ['restaurants', 'filters'] as const,
   mine: ['restaurants', 'mine'] as const,
   menu: (id: string) => [...restaurantKeys.all, 'menu', id] as const,
 };
@@ -57,6 +58,14 @@ export function useRestaurantStats() {
   return useQuery({
     queryKey: restaurantKeys.stats,
     queryFn: () => restaurantApi.getRestaurantStats(),
+    staleTime: 120_000,
+  });
+}
+
+export function useSearchFilters() {
+  return useQuery({
+    queryKey: restaurantKeys.filters,
+    queryFn: () => restaurantApi.getSearchFilters(),
     staleTime: 120_000,
   });
 }

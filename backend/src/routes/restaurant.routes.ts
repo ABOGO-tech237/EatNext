@@ -181,6 +181,25 @@ router.get('/stats', async (_req, res, next) => {
 
 /**
  * @openapi
+ * /restaurants/filters:
+ *   get:
+ *     tags: [Restaurants]
+ *     summary: Villes et cuisines distinctes (fiches publiées)
+ *     responses:
+ *       200:
+ *         description: Listes dynamiques pour les filtres de recherche.
+ */
+router.get('/filters', async (_req, res, next) => {
+  try {
+    const filters = await restaurantService.getSearchFilters();
+    sendSuccess(res, filters);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @openapi
  * /restaurants/mine:
  *   get:
  *     tags: [Restaurants]

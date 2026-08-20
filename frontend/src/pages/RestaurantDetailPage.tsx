@@ -16,7 +16,7 @@ import { useAuthActions } from '../hooks/useAuth';
 import { RestaurantMap } from '../components/restaurant/RestaurantMap';
 import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { ReviewCard } from '../components/restaurant/ReviewCard';
-import { SourceBadge, getListingBadge } from '../components/restaurant/SourceBadge';
+import { SourceBadge } from '../components/restaurant/SourceBadge';
 import { Rating, RatingInput } from '../components/ui/Rating';
 import { PriceRange } from '../components/ui/PriceRange';
 import { Badge } from '../components/ui/Badge';
@@ -77,7 +77,6 @@ export default function RestaurantDetailPage() {
   }
 
   const photos = restaurant.photos.filter(Boolean);
-  const badge = getListingBadge(restaurant);
   const canClaim = !restaurant.ownerId;
   const isMine = user && restaurant.ownerId === user.id;
   const hours = openingStatus(restaurant.openingHours);
@@ -140,7 +139,7 @@ export default function RestaurantDetailPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-5 text-left text-white sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
-                <SourceBadge restaurant={restaurant} />
+                {restaurant.ownerId && <SourceBadge restaurant={restaurant} />}
                 <Badge variant="muted" className="capitalize normal-case tracking-normal">
                   {restaurant.cuisineType}
                 </Badge>
@@ -373,9 +372,7 @@ export default function RestaurantDetailPage() {
                 <Store className="h-5 w-5 text-white" />
                 <p className="mt-3 text-xl font-semibold">C'est votre établissement ?</p>
                 <p className="mt-2 text-sm text-brand-100">
-                  {badge === 'osm'
-                    ? 'Fiche issue d’OpenStreetMap. Revendiquez-la pour la rendre officielle.'
-                    : 'Revendiquez cette fiche plutôt que d’en créer une autre.'}
+                  Revendiquez cette fiche plutôt que d’en créer une autre.
                 </p>
                 <Button className="mt-4 w-full" onClick={handleClaim} loading={claim.isPending}>
                   Revendiquer cette fiche

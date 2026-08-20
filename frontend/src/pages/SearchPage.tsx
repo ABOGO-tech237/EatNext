@@ -7,73 +7,70 @@ import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { RestaurantMap } from '../components/restaurant/RestaurantMap';
 import { RestaurantGridSkeleton } from '../components/ui/Spinner';
 import { Button } from '../components/ui/Button';
-import { useRestaurantSearch } from '../hooks/useRestaurants';
+import { useRestaurantSearch, useSearchFilters } from '../hooks/useRestaurants';
 import { useIsFavorite, useToggleFavorite } from '../hooks/useFavorites';
 import { useIsAuthenticated } from '../stores/authStore';
 import type { Restaurant, SearchParams } from '../types';
 import { CAMEROON_CITIES, cn } from '../lib/utils';
+import { queryToSearchParams, searchParamsToQuery } from '../lib/searchQuery';
 
 /**
- * Recherche : chips + une carte Leaflet toujours montée (sheet mobile).
+ * Recherche : barre texte toujours visible + filtres issus de la base.
  */
 export default function SearchPage() {
-  const [urlParams] = useSearchParams();
+  const [urlParams, setUrlParams] = useSearchParams();
   const isAuth = useIsAuthenticated();
   const toggleFavorite = useToggleFavorite();
+  const { data: filters } = useSearchFilters();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [mapTall, setMapTall] = useState(false);
   const [selected, setSelected] = useState<Restaurant | null>(null);
 
-  const initialParams: SearchParams = useMemo(() => {
-    const lat = urlParams.get('lat');
-    const lng = urlParams.get('lng');
-    const price = urlParams.get('priceRange');
-    return {
-      q: urlParams.get('q') ?? undefined,
-      city: urlParams.get('city') ?? undefined,
-      cuisine: urlParams.get('cuisine') ?? undefined,
-      priceRange: price ? Number(price) : undefined,
-      lat: lat ? Number(lat) : undefined,
-      lng: lng ? Number(lng) : undefined,
-      radius: lat && lng ? 5000 : undefined,
-      sortBy: lat && lng ? 'distance' : 'rating',
-      order: 'desc',
-      limit: 24,
-    };
-  }, [urlParams]);
-
-  const [params, setParams] = useState<SearchParams>(initialParams);
-  const [activeParams, setActiveParams] = useState<SearchParams>(initialParams);
+  const params = useMemo(() => queryToSearchParams(urlParams), [urlParams]);
+  const [draft, setDraft] = useState<SearchParams>(params);
 
   useEffect(() => {
-    setParams(initialParams);
-    setActiveParams(initialParams);
-  }, [initialParams]);
+    setDraft(params);
+  }, [params]);
 
-  const { data, isLoading, isFetching } = useRestaurantSearch(activeParams);
+  const apply = (next: SearchParams) => {
+    setDraft(next);
+    setUrlParams(searchParamsToQuery(next), { replace: true });
+  };
+
+  const { data, isLoading, isFetching } = useRestaurantSearch(params);
   const restaurants = data?.items ?? [];
 
-  const defaultCity = CAMEROON_CITIES.find((c) => c.name === activeParams.city) ?? CAMEROON_CITIES[0];
+  useEffect(() => {
+    const bits = [params.q, params.city, params.cuisine].filter(Boolean);
+    document.title = bits.length ? `EatNext — ${bits.join(' · ')}` : 'EatNext — Recherche';
+    return () => {
+      document.title = 'EatNext';
+    };
+  }, [params.q, params.city, params.cuisine]);
+
+  const defaultCity =
+    filters?.cities.find((c) => c.name === params.city) ??
+    filters?.cities[0] ??
+    CAMEROON_CITIES[0];
   const mapCenter: [number, number] = selected
     ? [selected.lat, selected.lng]
-    : activeParams.lat != null && activeParams.lng != null
-      ? [activeParams.lat, activeParams.lng]
+    : params.lat != null && params.lng != null
+      ? [params.lat, params.lng]
       : [defaultCity.lat, defaultCity.lng];
 
   const locateMe = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition((pos) => {
-      const next: SearchParams = {
+      apply({
         ...params,
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
         radius: 5000,
         sortBy: 'distance',
-      };
-      setParams(next);
-      setActiveParams(next);
+      });
     });
   };
 
@@ -102,10 +99,12 @@ export default function SearchPage() {
       <div className="border-b border-ink-100 bg-ink-50 px-4 py-4 sm:px-6">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Explorer</p>
-            <h1 className="text-2xl font-bold text-ink-900 sm:text-3xl">Tables à proximité</h1>
+            <h1 className="text-2xl font-bold text-ink-900 sm:text-3xl">Restaurants</h1>
             <p className="mt-1 text-sm text-ink-500">
               {data?.meta.total ?? '…'} résultat{(data?.meta.total ?? 0) > 1 ? 's' : ''}
+              {params.q ? ` pour « ${params.q} »` : ''}
+              {params.city ? ` · ${params.city}` : ''}
+              {params.cuisine ? ` · ${params.cuisine}` : ''}
               {isFetching && !isLoading && ' · mise à jour'}
             </p>
           </div>
@@ -124,27 +123,26 @@ export default function SearchPage() {
             </Button>
           </div>
         </div>
-        <div className="mx-auto mt-4 max-w-[1600px]">
+        <div className="mx-auto mt-4 max-w-[1600px] space-y-3">
           <SearchChips
             params={params}
-            onChange={setParams}
-            onApply={setActiveParams}
+            onChange={setDraft}
+            onApply={apply}
             onLocate={locateMe}
           />
           <button
             type="button"
-            className="mt-3 hidden text-sm font-medium text-brand-700 lg:inline"
+            className="hidden text-sm font-medium text-brand-700 lg:inline"
             onClick={() => setMoreOpen((v) => !v)}
           >
             {moreOpen ? 'Moins de filtres' : 'Plus de filtres'}
           </button>
           {moreOpen && (
-            <div className="mt-3 hidden lg:block">
+            <div className="hidden lg:block">
               <SearchFilters
-                compact
-                params={params}
-                onChange={setParams}
-                onSearch={() => setActiveParams({ ...params })}
+                params={draft}
+                onChange={setDraft}
+                onSearch={() => apply(draft)}
               />
             </div>
           )}
@@ -225,10 +223,10 @@ export default function SearchPage() {
               </button>
             </div>
             <SearchFilters
-              params={params}
-              onChange={setParams}
+              params={draft}
+              onChange={setDraft}
               onSearch={() => {
-                setActiveParams({ ...params });
+                apply(draft);
                 setFiltersOpen(false);
               }}
             />
