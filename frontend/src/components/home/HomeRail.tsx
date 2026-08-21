@@ -8,14 +8,14 @@ interface HomeRailProps {
   href?: string;
   restaurants: Restaurant[];
   isLoading?: boolean;
-  emptyLabel: string;
+  emptyLabel?: string;
   onToggleFavorite?: (restaurant: Restaurant, isFavorite: boolean) => void;
   isFavorite?: (id: string) => boolean;
   favoriteLoading?: boolean;
 }
 
 /**
- * Carrousel horizontal snap — Material 3 Carousel / pattern DoorDash.
+ * Carrousel horizontal snap. Si `emptyLabel` est vide, la section disparaît.
  */
 export function HomeRail({
   title,
@@ -27,6 +27,10 @@ export function HomeRail({
   isFavorite,
   favoriteLoading,
 }: HomeRailProps) {
+  if (!isLoading && restaurants.length === 0 && !emptyLabel) {
+    return null;
+  }
+
   return (
     <section className="py-8">
       <div className="mx-auto flex max-w-7xl items-end justify-between px-4 sm:px-6">
@@ -39,7 +43,9 @@ export function HomeRail({
         {isLoading ? (
           <RestaurantRailSkeleton />
         ) : restaurants.length === 0 ? (
-          <p className="mx-auto max-w-7xl px-4 text-sm text-ink-500 sm:px-6">{emptyLabel}</p>
+          emptyLabel ? (
+            <p className="mx-auto max-w-7xl px-4 text-sm text-ink-500 sm:px-6">{emptyLabel}</p>
+          ) : null
         ) : (
           <div className="snap-rail flex gap-4 overflow-x-auto px-4 pb-2 sm:px-6">
             {restaurants.map((restaurant, i) => (

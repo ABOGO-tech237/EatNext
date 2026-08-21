@@ -397,7 +397,7 @@ export default function RestaurantDetailPage() {
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 py-3 pb-[calc(0.75rem+4.5rem)] backdrop-blur-md sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 py-3 backdrop-blur-md sm:hidden">
         <div className="flex gap-2">
           {restaurant.phone ? (
             <a className="flex-1" href={`tel:${restaurant.phone}`}>

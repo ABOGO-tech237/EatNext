@@ -1,22 +1,25 @@
 import { useNavigate } from 'react-router-dom';
-import { HomeDiscoverHeader } from '../components/home/HomeDiscoverHeader';
-import { HomeQuickFilters } from '../components/home/HomeQuickFilters';
-import { HomeRail } from '../components/home/HomeRail';
+import { HomeCuisines } from '../components/home/HomeCuisines';
+import { HomeFeatured } from '../components/home/HomeFeatured';
+import { HomeHero } from '../components/home/HomeHero';
+import { HomeMoments } from '../components/home/HomeMoments';
 import { HomeNearby } from '../components/home/HomeNearby';
 import { HomeOwnerCta } from '../components/home/HomeOwnerCta';
-import { useRestaurantSearch } from '../hooks/useRestaurants';
+import { HomeRail } from '../components/home/HomeRail';
+import { HomeSteps } from '../components/home/HomeSteps';
 import { useFavorites, useToggleFavorite } from '../hooks/useFavorites';
-import { useIsAuthenticated } from '../stores/authStore';
+import { useRestaurantSearch } from '../hooks/useRestaurants';
 import { searchParamsToQuery } from '../lib/searchQuery';
+import { useIsAuthenticated } from '../stores/authStore';
 import type { Restaurant } from '../types';
 
 /**
- * Accueil découverte : header + filtres + rails + liste proximité.
+ * Accueil EatNext : hero photo, 2 villes / 3 cuisines, mieux notés, moments,
+ * puis rails de découverte — pas un clone DoorDash.
  */
 export default function HomePage() {
   const navigate = useNavigate();
   const isAuth = useIsAuthenticated();
-  const recommended = useRestaurantSearch({ limit: 8, sortBy: 'rating', order: 'desc' });
   const newest = useRestaurantSearch({ limit: 8, sortBy: 'createdAt', order: 'desc' });
   const { data: favorites } = useFavorites(isAuth);
   const toggleFavorite = useToggleFavorite();
@@ -40,25 +43,20 @@ export default function HomePage() {
 
   return (
     <div>
-      <HomeDiscoverHeader />
-      <HomeQuickFilters />
-      <HomeRail
-        title="Recommandé pour vous"
-        href={`/search?${searchParamsToQuery({ sortBy: 'rating' })}`}
-        restaurants={recommended.data?.items ?? []}
-        isLoading={recommended.isLoading}
-        emptyLabel="Aucun restaurant publié pour l’instant."
-        {...favProps}
-      />
+      <HomeHero />
+      <HomeCuisines />
+      <HomeFeatured {...favProps} />
       <HomeRail
         title="Nouveaux sur EatNext"
         href={`/search?${searchParamsToQuery({ sortBy: 'createdAt' })}`}
         restaurants={newest.data?.items ?? []}
         isLoading={newest.isLoading}
-        emptyLabel="Pas encore de nouvelles fiches à afficher."
+        emptyLabel=""
         {...favProps}
       />
+      <HomeMoments />
       <HomeNearby {...favProps} />
+      <HomeSteps />
       <HomeOwnerCta />
     </div>
   );

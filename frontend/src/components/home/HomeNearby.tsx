@@ -5,6 +5,8 @@ import { useNearbyRestaurants, useRestaurantSearch } from '../../hooks/useRestau
 import { CAMEROON_CITIES } from '../../lib/utils';
 import type { Restaurant } from '../../types';
 
+const DOUALA = CAMEROON_CITIES.find((c) => c.name === 'Douala') ?? CAMEROON_CITIES[1];
+
 interface HomeNearbyProps {
   onToggleFavorite?: (restaurant: Restaurant, isFavorite: boolean) => void;
   isFavorite?: (id: string) => boolean;
@@ -12,7 +14,7 @@ interface HomeNearbyProps {
 }
 
 /**
- * Liste verticale « Près de vous » — GPS réel, sinon Douala (libellé explicite).
+ * Liste « près de vous » : GPS si dispo, sinon Douala sans message d’échec.
  */
 export function HomeNearby({ onToggleFavorite, isFavorite, favoriteLoading }: HomeNearbyProps) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -20,7 +22,7 @@ export function HomeNearby({ onToggleFavorite, isFavorite, favoriteLoading }: Ho
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setCoords({ lat: CAMEROON_CITIES[1].lat, lng: CAMEROON_CITIES[1].lng });
+      setCoords({ lat: DOUALA.lat, lng: DOUALA.lng });
       setGeoState('fallback');
       return;
     }
@@ -30,37 +32,32 @@ export function HomeNearby({ onToggleFavorite, isFavorite, favoriteLoading }: Ho
         setGeoState('ok');
       },
       () => {
-        setCoords({ lat: CAMEROON_CITIES[1].lat, lng: CAMEROON_CITIES[1].lng });
+        setCoords({ lat: DOUALA.lat, lng: DOUALA.lng });
         setGeoState('fallback');
       },
       { timeout: 8000, maximumAge: 120_000 },
     );
   }, []);
 
-  const nearby = useNearbyRestaurants(coords?.lat, coords?.lng, 5000, 8);
+  const nearby = useNearbyRestaurants(coords?.lat, coords?.lng, 5000, 6);
   const fallback = useRestaurantSearch(
-    { limit: 8, sortBy: 'rating', order: 'desc' },
-    { enabled: geoState !== 'pending' && (nearby.data?.length ?? 0) === 0 && !nearby.isFetching },
+    { city: DOUALA.name, limit: 6, sortBy: 'rating', order: 'desc' },
+    { enabled: geoState === 'fallback' },
   );
 
-  const items = (nearby.data?.length ? nearby.data : fallback.data?.items) ?? [];
-  const loading = geoState === 'pending' || nearby.isLoading;
+  const items = geoState === 'ok' ? (nearby.data ?? []) : (fallback.data?.items ?? nearby.data ?? []);
+  const loading = geoState === 'pending' || (geoState === 'ok' ? nearby.isLoading : fallback.isLoading);
+
+  if (!loading && items.length === 0) return null;
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h2 className="text-xl font-semibold text-ink-900">Près de vous</h2>
-      {geoState === 'fallback' && (
-        <p className="mt-1 text-sm text-ink-500">
-          Position non disponible — liste autour de Douala (centre).
-        </p>
-      )}
+      <h2 className="text-xl font-semibold text-ink-900">
+        {geoState === 'ok' ? 'Près de vous' : `Tables à ${DOUALA.name}`}
+      </h2>
       <div className="mt-4 space-y-4">
         {loading ? (
           <RestaurantListSkeleton />
-        ) : items.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-ink-200 bg-white px-4 py-8 text-sm text-ink-500">
-            Aucun établissement à proximité pour l’instant.
-          </p>
         ) : (
           items.map((restaurant, i) => (
             <RestaurantCard

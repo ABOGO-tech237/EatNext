@@ -94,8 +94,8 @@ function PhotoCarousel({
 }
 
 /**
- * Carte restaurant unique — grille, rail DoorDash, liste Yelp.
- * Signaux : note + nombre d’avis + tag distinctif (OSM ou cuisine).
+ * Carte restaurant — grille, rail, liste.
+ * Signaux : note, avis, prix FCFA, tag distinctif (OSM ou cuisine).
  */
 export function RestaurantCard({
   restaurant,

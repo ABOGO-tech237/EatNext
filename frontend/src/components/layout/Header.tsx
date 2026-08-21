@@ -7,7 +7,6 @@ import { SearchBar } from '../search/SearchBar';
 import { queryToSearchParams, searchParamsToQuery } from '../../lib/searchQuery';
 import { BrandMark } from '../brand/BrandLogo';
 import { Button } from '../ui/Button';
-import { NotificationBell } from './NotificationBell';
 import { cn } from '../../lib/utils';
 
 const navLinks = [
@@ -99,8 +98,7 @@ export function Header() {
           />
         </div>
 
-        <div className="ml-auto hidden shrink-0 items-center gap-1 md:flex">
-          <NotificationBell />
+        <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
           {isAuth ? (
             <>
               <NavLink to="/profile" className={navLinkClass}>
@@ -124,18 +122,15 @@ export function Header() {
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-1 md:hidden">
-          <NotificationBell />
-          <button
-            type="button"
-            className="rounded-lg p-2 text-ink-600 hover:bg-ink-100"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-expanded={mobileOpen}
-            aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-          >
-            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
+        <button
+          type="button"
+          className="ml-auto rounded-lg p-2 text-ink-600 hover:bg-ink-100 md:hidden"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-expanded={mobileOpen}
+          aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+        >
+          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
       </div>
 
       {mobileOpen && (
