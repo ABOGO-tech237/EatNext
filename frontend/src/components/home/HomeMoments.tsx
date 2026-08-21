@@ -29,7 +29,7 @@ export function HomeMoments() {
   const navigate = useNavigate();
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <section className="home-shell py-10">
       <FadeIn inView>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Moments</p>
         <h2 className="mt-2 text-xl font-semibold text-ink-900 sm:text-2xl">Pour ce soir</h2>

@@ -24,7 +24,7 @@ const STEPS = [
  */
 export function HomeSteps() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <section className="home-shell py-6">
       <FadeIn inView>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">Parcours</p>
         <h2 className="mt-2 text-2xl font-semibold text-ink-900 sm:text-3xl">Comment ça marche</h2>

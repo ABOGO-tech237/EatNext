@@ -81,9 +81,14 @@
     animation: fade-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  /** Accueil : plus large que 7xl, sans coller aux bords. */
+  .home-shell {
+    @apply mx-auto w-full max-w-[90rem] px-3 sm:px-4 lg:px-6;
+  }
+
   .snap-rail {
     scroll-snap-type: x mandatory;
-    scroll-padding-inline: 1rem;
+    scroll-padding-inline: 0.75rem;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }

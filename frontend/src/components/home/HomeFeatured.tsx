@@ -32,7 +32,7 @@ export function HomeFeatured({ onToggleFavorite, isFavorite, favoriteLoading }: 
   });
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
+    <section className="home-shell pt-12 pb-16">
       <FadeIn inView className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-ink-900">Les mieux notés</h2>
         <Button variant="ghost" size="sm" onClick={() => navigate('/search')}>
@@ -47,9 +47,9 @@ export function HomeFeatured({ onToggleFavorite, isFavorite, favoriteLoading }: 
             Aucune table publiée pour l’instant.
           </p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {hero && (
-              <div className="sm:col-span-2 lg:col-span-3">
+              <div className="sm:col-span-2 lg:col-span-3 xl:col-span-5">
                 <RestaurantCard restaurant={hero} featured index={0} hideClosedBadge {...cardProps(hero)} />
               </div>
             )}

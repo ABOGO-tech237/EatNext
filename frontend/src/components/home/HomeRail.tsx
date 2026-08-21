@@ -17,7 +17,7 @@ interface HomeRailProps {
 }
 
 /**
- * Carrousel horizontal snap. Si `emptyLabel` est vide, la section disparaît.
+ * Carrousel horizontal dans le shell accueil — large, pas collé aux bords.
  */
 export function HomeRail({
   title,
@@ -36,12 +36,12 @@ export function HomeRail({
   }
 
   const scrollBy = (dir: -1 | 1) => {
-    scrollerRef.current?.scrollBy({ left: dir * 288, behavior: 'smooth' });
+    scrollerRef.current?.scrollBy({ left: dir * 340, behavior: 'smooth' });
   };
 
   return (
-    <section className="py-8">
-      <div className="mx-auto flex max-w-7xl items-end justify-between px-4 sm:px-6">
+    <section className="py-10">
+      <div className="home-shell flex items-end justify-between">
         <h2 className="text-xl font-semibold text-ink-900">{title}</h2>
         <div className="flex items-center gap-2">
           {restaurants.length > 0 && (
@@ -71,15 +71,17 @@ export function HomeRail({
       </div>
       <div className="mt-4">
         {isLoading ? (
-          <RestaurantRailSkeleton />
+          <div className="home-shell">
+            <RestaurantRailSkeleton />
+          </div>
         ) : restaurants.length === 0 ? (
           emptyLabel ? (
-            <p className="mx-auto max-w-7xl px-4 text-sm text-ink-500 sm:px-6">{emptyLabel}</p>
+            <p className="home-shell text-sm text-ink-500">{emptyLabel}</p>
           ) : null
         ) : (
-          <div ref={scrollerRef} className="snap-rail flex gap-4 overflow-x-auto px-4 pb-2 sm:px-6">
+          <div ref={scrollerRef} className="home-shell snap-rail flex gap-4 overflow-x-auto pb-2">
             {restaurants.map((restaurant, i) => (
-              <div key={restaurant.id} className="w-[min(80vw,17.5rem)] shrink-0">
+              <div key={restaurant.id} className="w-[min(72vw,20.5rem)] shrink-0">
                 <RestaurantCard
                   restaurant={restaurant}
                   variant="rail"

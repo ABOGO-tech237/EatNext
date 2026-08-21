@@ -11,8 +11,8 @@ export function HomeOwnerCta() {
   const isAuth = useIsAuthenticated();
 
   return (
-    <section className="px-4 pb-20 sm:px-6">
-      <FadeIn inView className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-brand-800 text-white">
+    <section className="home-shell pb-20">
+      <FadeIn inView className="relative overflow-hidden rounded-3xl bg-brand-800 text-white">
         <img
           src={OWNER_COVER}
           alt=""

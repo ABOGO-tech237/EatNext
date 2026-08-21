@@ -12,7 +12,7 @@ export function Footer() {
 
   return (
     <footer className="mt-auto border-t border-ink-200 bg-gradient-to-b from-white to-ink-50">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <div className="home-shell py-10">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <BrandLogo layout="lockup" />

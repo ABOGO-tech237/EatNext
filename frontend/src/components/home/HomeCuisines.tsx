@@ -32,7 +32,7 @@ export function HomeCuisines() {
   if (cities.length === 0 && cuisines.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-7xl space-y-10 px-4 py-12 sm:px-6">
+    <section className="home-shell space-y-10 py-12">
       {cities.length > 0 && (
         <div>
           <FadeIn inView>
