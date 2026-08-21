@@ -31,6 +31,17 @@ const PHOTO_COVERS: Record<string, string> = {
   nigeriane: '/covers/cuisine-grillades.png',
   méditerranéenne: '/covers/city-yaounde.png',
   mediterraneenne: '/covers/city-yaounde.png',
+  'pâtisserie / café': '/covers/owner-salle.png',
+  patisserie: '/covers/owner-salle.png',
+  pâtisserie: '/covers/owner-salle.png',
+  café: '/covers/owner-salle.png',
+  cafe: '/covers/owner-salle.png',
+  bakery: '/covers/owner-salle.png',
+  'fast-food': '/covers/cuisine-grillades.png',
+  fast_food: '/covers/cuisine-grillades.png',
+  'fast food': '/covers/cuisine-grillades.png',
+  bar: '/covers/city-douala.png',
+  'bar / restaurant': '/covers/city-douala.png',
 };
 
 export const DEFAULT_COVER = '/covers/default.svg';
@@ -79,6 +90,9 @@ export function coverForCuisine(cuisine?: string | null): string {
     return PHOTO_COVERS['fruits de mer'];
   }
   if (/cameroun|ndol|eru|achu|koki/.test(key)) return PHOTO_COVERS.camerounaise;
+  if (/patiss|caf[eé]|bakery|coffee/.test(key)) return PHOTO_COVERS.cafe;
+  if (/fast.?food|burger/.test(key)) return PHOTO_COVERS['fast-food'];
+  if (/(^|\s)bar(\s|$)|bar \//.test(key)) return PHOTO_COVERS.bar;
 
   return SVG_COVERS[raw] ?? SVG_COVERS[key] ?? DEFAULT_COVER;
 }

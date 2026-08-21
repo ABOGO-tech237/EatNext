@@ -30,6 +30,7 @@ import {
   openingStatus,
 } from '../lib/utils';
 import { FadeIn } from '../components/ui/FadeIn';
+import { isUsefulCuisine } from '../lib/filters';
 
 /**
  * Fiche diner : galerie swipe, actions Réserver / Itinéraire / Appeler, similaires.
@@ -132,9 +133,11 @@ export default function RestaurantDetailPage() {
         <FadeIn className="mt-5">
           <div className="flex flex-wrap items-center gap-2">
             {restaurant.ownerId && <SourceBadge restaurant={restaurant} />}
-            <Badge variant="muted" className="capitalize normal-case tracking-normal">
-              {restaurant.cuisineType}
-            </Badge>
+            {isUsefulCuisine(restaurant.cuisineType) && (
+              <Badge variant="muted" className="capitalize normal-case tracking-normal">
+                {restaurant.cuisineType}
+              </Badge>
+            )}
             {hours && (
               <span
                 className={cn(
