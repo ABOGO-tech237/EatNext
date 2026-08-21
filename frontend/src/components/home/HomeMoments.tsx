@@ -50,7 +50,7 @@ export function HomeMoments() {
                 decoding="async"
                 aria-hidden
               />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-900/80 via-brand-800/35 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-900/88 via-brand-900/45 to-brand-900/15" />
               <span className="absolute inset-x-0 bottom-0 p-4">
                 <span className="block text-base font-semibold">{moment.title}</span>
                 <span className="mt-0.5 block text-sm text-white/80">{moment.text}</span>

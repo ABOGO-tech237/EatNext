@@ -195,7 +195,9 @@ export function SearchBar({
         </li>
       )}
       {!isFetching && hits.length === 0 && (
-        <li className="px-3 py-2.5 text-sm text-ink-500">Aucun restaurant</li>
+        <li className="px-3 py-2.5 text-sm text-ink-500">
+          Aucun résultat{q.trim() ? ` pour « ${q.trim()} »` : ''}.
+        </li>
       )}
       {hits.map((restaurant, index) => (
         <li key={restaurant.id} role="presentation">

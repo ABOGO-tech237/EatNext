@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FadeIn } from '../ui/FadeIn';
 import { PhotoCover } from '../ui/PhotoCover';
-import { useRestaurantSearch, useSearchFilters } from '../../hooks/useRestaurants';
+import { useSearchFilters } from '../../hooks/useRestaurants';
 import { coverForCity, coverForCuisine } from '../../lib/covers';
 import { pickHomeCities, pickHomeCuisines } from '../../lib/filters';
 
@@ -27,30 +26,8 @@ function citySubtitle(name: string): string | undefined {
 export function HomeCuisines() {
   const navigate = useNavigate();
   const { data: filters } = useSearchFilters();
-  const { data } = useRestaurantSearch({ limit: 24, sortBy: 'rating', order: 'desc' });
   const cities = pickHomeCities(filters?.cities ?? []);
   const cuisines = pickHomeCuisines(filters?.cuisines ?? []);
-
-  const coverByCity = useMemo(() => {
-    const map = new Map<string, { src?: string; seed: string; cuisine?: string }>();
-    for (const r of data?.items ?? []) {
-      if (!map.has(r.city)) {
-        map.set(r.city, { src: r.photos[0], seed: r.id, cuisine: r.cuisineType });
-      }
-    }
-    return map;
-  }, [data?.items]);
-
-  const coverByCuisine = useMemo(() => {
-    const map = new Map<string, { src?: string; seed: string; cuisine?: string }>();
-    for (const r of data?.items ?? []) {
-      const key = r.cuisineType?.trim();
-      if (key && !map.has(key)) {
-        map.set(key, { src: r.photos[0], seed: r.id, cuisine: r.cuisineType });
-      }
-    }
-    return map;
-  }, [data?.items]);
 
   if (cities.length === 0 && cuisines.length === 0) return null;
 
@@ -63,7 +40,6 @@ export function HomeCuisines() {
           </FadeIn>
           <div className="mt-5 grid grid-cols-2 gap-3">
             {cities.map((city, i) => {
-              const cover = coverByCity.get(city.name);
               const subtitle = citySubtitle(city.name);
               return (
                 <FadeIn key={city.name} inView delay={i * 0.04}>
@@ -75,11 +51,9 @@ export function HomeCuisines() {
                     <div className="aspect-[16/9] overflow-hidden sm:aspect-[2/1]">
                       <div className="h-full w-full transition-transform duration-500 group-hover:scale-[1.04]">
                         <PhotoCover
-                          src={cover?.src}
+                          src={coverForCity(city.name)}
                           alt={city.name}
-                          seed={cover?.seed ?? city.name}
-                          cuisine={cover?.cuisine}
-                          fallbackSrc={coverForCity(city.name)}
+                          seed={city.name}
                         />
                       </div>
                     </div>
@@ -107,7 +81,6 @@ export function HomeCuisines() {
           </FadeIn>
           <div className="mt-5 grid grid-cols-3 gap-3">
             {cuisines.map((cuisine, i) => {
-              const cover = coverByCuisine.get(cuisine.name);
               return (
                 <FadeIn key={cuisine.name} inView delay={i * 0.04}>
                   <button
@@ -118,11 +91,10 @@ export function HomeCuisines() {
                     <div className="aspect-square overflow-hidden sm:aspect-[4/3]">
                       <div className="h-full w-full transition-transform duration-500 group-hover:scale-[1.04]">
                         <PhotoCover
-                          src={cover?.src}
+                          src={coverForCuisine(cuisine.name)}
                           alt={cuisine.name}
-                          seed={cover?.seed ?? cuisine.name}
+                          seed={cuisine.name}
                           cuisine={cuisine.name}
-                          fallbackSrc={coverForCuisine(cuisine.name)}
                         />
                       </div>
                     </div>

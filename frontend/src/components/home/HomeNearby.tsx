@@ -65,6 +65,7 @@ export function HomeNearby({ onToggleFavorite, isFavorite, favoriteLoading }: Ho
               restaurant={restaurant}
               variant="list"
               index={i}
+              hideClosedBadge
               isFavorite={isFavorite?.(restaurant.id)}
               onToggleFavorite={
                 onToggleFavorite

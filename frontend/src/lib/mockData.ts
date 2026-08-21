@@ -24,6 +24,7 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
       'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800',
     ],
     openingHours: 'Mo-Su 11:00-23:00',
+    phone: '+237 6 77 12 34 01',
     status: 'published',
   },
   {
@@ -45,6 +46,7 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
       'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800',
     ],
     openingHours: 'Mo-Su 12:00-23:00',
+    phone: '+237 6 77 12 34 02',
     status: 'published',
   },
   {
@@ -65,6 +67,7 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
       'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800',
     ],
     openingHours: 'Mo-Su 10:00-22:00',
+    phone: '+237 6 77 12 34 03',
     status: 'published',
   },
   {
@@ -85,6 +88,7 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
       'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800',
     ],
     openingHours: 'Mo-Su 11:00-22:00',
+    phone: '+237 6 77 12 34 04',
     status: 'published',
   },
   {
@@ -105,6 +109,7 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
       'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=800',
     ],
     openingHours: 'Mo-Su 12:00-23:00',
+    phone: '+237 6 77 12 34 05',
     status: 'published',
   },
   {
@@ -126,6 +131,7 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
       'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800',
     ],
     openingHours: 'Mo-Su 11:00-23:00',
+    phone: '+237 6 77 12 34 06',
     status: 'published',
   },
 ];

@@ -87,16 +87,18 @@ export function Header() {
           </NavLink>
         </nav>
 
-        <div className="hidden min-w-0 flex-1 lg:block">
-          <SearchBar
-            compact
-            inputId="header-search-q"
-            value={currentQ}
-            onSubmit={submitSearch}
-            onLiveQuery={liveSearch}
-            className="w-full max-w-md ml-auto"
-          />
-        </div>
+        {location.pathname !== '/' && (
+          <div className="hidden min-w-0 flex-1 lg:block">
+            <SearchBar
+              compact
+              inputId="header-search-q"
+              value={currentQ}
+              onSubmit={submitSearch}
+              onLiveQuery={liveSearch}
+              className="w-full max-w-md ml-auto"
+            />
+          </div>
+        )}
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
           {isAuth ? (

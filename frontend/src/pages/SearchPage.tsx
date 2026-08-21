@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { ChevronUp, SlidersHorizontal, X } from 'lucide-react';
 import { SearchFilters } from '../components/restaurant/SearchFilters';
 import { SearchChips } from '../components/restaurant/SearchChips';
-import { SearchBar } from '../components/search/SearchBar';
 import { RestaurantCard } from '../components/restaurant/RestaurantCard';
 import { RestaurantMap } from '../components/restaurant/RestaurantMap';
 import { RestaurantGridSkeleton } from '../components/ui/Spinner';
@@ -126,12 +125,6 @@ export default function SearchPage() {
           </div>
         </div>
         <div className="mx-auto mt-4 max-w-[1600px] space-y-3">
-          <SearchBar
-            inputId="search-page-q"
-            value={params.q ?? ''}
-            onSubmit={(q) => apply({ ...params, q: q || undefined })}
-            onLiveQuery={(q) => apply({ ...params, q: q || undefined })}
-          />
           <SearchChips
             params={params}
             onChange={setDraft}

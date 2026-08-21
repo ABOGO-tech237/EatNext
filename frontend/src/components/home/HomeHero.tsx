@@ -33,7 +33,7 @@ export function HomeHero() {
         fetchPriority="high"
         decoding="async"
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-900/40 via-brand-800/50 to-brand-900/58" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-900/50 via-brand-900/62 to-brand-900/78" />
 
       <div className="relative mx-auto flex min-h-[62vh] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
         {cities.length > 0 && (
@@ -45,7 +45,7 @@ export function HomeHero() {
           </motion.p>
         )}
 
-        <h1 className="mt-3 max-w-xl text-4xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="mt-3 max-w-xl text-[2.5rem] font-bold leading-[1.1] tracking-tight drop-shadow-[0_2px_12px_rgba(5,36,22,0.55)] sm:text-5xl">
           <motion.span className="block" {...enter(0.08)}>
             Trouvez votre
           </motion.span>
@@ -57,6 +57,12 @@ export function HomeHero() {
             </span>
           </motion.span>
         </h1>
+        <motion.p
+          className="mt-4 max-w-md text-sm text-white/85 sm:text-base"
+          {...enter(0.22, 8)}
+        >
+          Les tables de Douala et Yaoundé, prix en FCFA.
+        </motion.p>
 
         <div className="mt-8 w-full max-w-3xl">
           <HomeSearchBar delay={0.28} />

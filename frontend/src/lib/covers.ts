@@ -25,6 +25,12 @@ const PHOTO_COVERS: Record<string, string> = {
   'fruit de mer': '/covers/cuisine-fruits-de-mer.png',
   seafood: '/covers/cuisine-fruits-de-mer.png',
   poisson: '/covers/cuisine-fruits-de-mer.png',
+  'franco-africaine': '/covers/owner-salle.png',
+  'ouest-africaine': '/covers/cuisine-grillades.png',
+  nigériane: '/covers/cuisine-grillades.png',
+  nigeriane: '/covers/cuisine-grillades.png',
+  méditerranéenne: '/covers/city-yaounde.png',
+  mediterraneenne: '/covers/city-yaounde.png',
 };
 
 export const DEFAULT_COVER = '/covers/default.svg';

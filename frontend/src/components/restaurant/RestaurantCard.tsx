@@ -30,6 +30,8 @@ interface RestaurantCardProps {
   variant?: 'grid' | 'rail' | 'list';
   /** Index de grille — stagger 40ms, cap 6. */
   index?: number;
+  /** Accueil : n’afficher « Fermé » que sur la fiche / la recherche. */
+  hideClosedBadge?: boolean;
 }
 
 function restaurantHref(restaurant: Restaurant) {
@@ -107,6 +109,7 @@ export function RestaurantCard({
   featured,
   variant = 'grid',
   index = 0,
+  hideClosedBadge = false,
 }: RestaurantCardProps) {
   const reduce = useReducedMotion();
   const photos = restaurant.photos.filter(Boolean);
@@ -132,12 +135,17 @@ export function RestaurantCard({
       className={cn(
         'group relative overflow-hidden rounded-2xl bg-white shadow-card transition-shadow duration-300 hover:shadow-card-hover',
         selected && 'ring-2 ring-brand-500',
-        featured && 'sm:grid sm:grid-cols-[minmax(0,1.2fr)_1fr]',
         isRail && 'h-full snap-start',
-        isList && 'sm:grid sm:grid-cols-[minmax(0,14rem)_1fr]',
       )}
     >
-      <Link to={href} className="contents">
+      <Link
+        to={href}
+        className={cn(
+          'block',
+          featured && 'sm:grid sm:grid-cols-[minmax(0,1.2fr)_1fr]',
+          isList && 'sm:grid sm:grid-cols-[minmax(0,14rem)_1fr]',
+        )}
+      >
         <div
           className={cn(
             'relative overflow-hidden bg-ink-800',
@@ -171,11 +179,11 @@ export function RestaurantCard({
                 Nouveau
               </Badge>
             )}
-            {hours && (
+            {hours && (!hideClosedBadge || hours.open) && (
               <span
                 className={cn(
                   'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                  hours.open ? 'bg-emerald-500 text-white' : 'bg-ink-800/80 text-white',
+                  hours.open ? 'bg-emerald-600 text-white' : 'bg-ink-800/80 text-white',
                 )}
               >
                 {hours.label}

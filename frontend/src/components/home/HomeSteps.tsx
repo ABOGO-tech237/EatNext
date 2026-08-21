@@ -33,11 +33,13 @@ export function HomeSteps() {
         {STEPS.map((step, i) => (
           <FadeIn key={step.title} inView delay={i * 0.08}>
             <div className="group h-full rounded-3xl border border-ink-100 bg-white p-5 shadow-card transition-transform duration-300 hover:-translate-y-1 hover:shadow-card-hover">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-50 text-sm font-bold text-brand-700">
-                0{i + 1}
-              </span>
-              <step.icon className="mt-4 h-5 w-5 text-brand-600" aria-hidden />
-              <h3 className="mt-3 text-lg font-semibold text-ink-900">{step.title}</h3>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50 text-brand-800">
+                  <step.icon className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="text-sm font-bold text-brand-700">0{i + 1}</span>
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-ink-900">{step.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{step.text}</p>
             </div>
           </FadeIn>

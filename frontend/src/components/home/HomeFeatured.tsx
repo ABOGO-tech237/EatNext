@@ -50,11 +50,11 @@ export function HomeFeatured({ onToggleFavorite, isFavorite, favoriteLoading }: 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {hero && (
               <div className="sm:col-span-2 lg:col-span-3">
-                <RestaurantCard restaurant={hero} featured index={0} {...cardProps(hero)} />
+                <RestaurantCard restaurant={hero} featured index={0} hideClosedBadge {...cardProps(hero)} />
               </div>
             )}
             {rest.map((r, i) => (
-              <RestaurantCard key={r.id} restaurant={r} compact index={i + 1} {...cardProps(r)} />
+              <RestaurantCard key={r.id} restaurant={r} compact index={i + 1} hideClosedBadge {...cardProps(r)} />
             ))}
           </div>
         )}

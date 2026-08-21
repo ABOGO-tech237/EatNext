@@ -190,7 +190,7 @@ export default function RestaurantDetailPage() {
               </Button>
             </a>
           ) : (
-            <Button disabled title="Numéro non renseigné sur cette fiche">
+            <Button disabled variant="outline" title="Numéro non renseigné sur cette fiche">
               <CalendarClock className="h-4 w-4" />
               Réserver une table
             </Button>
@@ -407,7 +407,7 @@ export default function RestaurantDetailPage() {
               </Button>
             </a>
           ) : (
-            <Button className="flex-1" disabled>
+            <Button className="flex-1" variant="outline" disabled>
               Réserver
             </Button>
           )}
