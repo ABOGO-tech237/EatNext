@@ -40,6 +40,7 @@ export interface Restaurant {
   openingHours?: string | null;
   phone?: string | null;
   website?: string | null;
+  createdAt?: string;
   /** Distance en mètres — renvoyée par la recherche géographique. */
   distance?: number;
 }
@@ -89,9 +90,11 @@ export interface SearchParams {
   priceRange?: number;
   page?: number;
   limit?: number;
-  sortBy?: 'rating' | 'distance' | 'name';
+  sortBy?: 'rating' | 'distance' | 'name' | 'createdAt';
   order?: 'asc' | 'desc';
   includeOsm?: boolean;
+  /** Filtre client : horaires parsables et actuellement ouverts. */
+  openNow?: boolean;
 }
 
 export interface MenuItem {

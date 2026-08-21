@@ -41,7 +41,7 @@ const searchSchema = z.object({
   priceRange: z.coerce.number().min(1).max(4).optional(),
   page: z.coerce.number().min(1).optional(),
   limit: z.coerce.number().min(1).max(50).optional(),
-  sortBy: z.enum(['rating', 'distance', 'name']).optional(),
+  sortBy: z.enum(['rating', 'distance', 'name', 'createdAt']).optional(),
   order: z.enum(['asc', 'desc']).optional(),
 });
 
@@ -85,7 +85,7 @@ const menuItemSchema = z.object({
  *       - { in: query, name: priceRange, schema: { $ref: '#/components/schemas/PriceRange' } }
  *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
  *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
- *       - { in: query, name: sortBy, schema: { type: string, enum: [rating, distance, name] } }
+ *       - { in: query, name: sortBy, schema: { type: string, enum: [rating, distance, name, createdAt] } }
  *       - { in: query, name: order, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
