@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useSearchFilters } from '../../hooks/useRestaurants';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { SearchParams } from '../../types';
 import { isUsefulCuisine } from '../../lib/filters';
 import { PRICE_RANGE_TIERS } from '../../lib/utils';
@@ -10,16 +12,30 @@ interface SearchFiltersProps {
   params: SearchParams;
   onChange: (params: SearchParams) => void;
   onSearch: () => void;
+  onLiveQuery?: (q: string) => void;
 }
 
 /**
  * Filtres avancés — villes et cuisines importées depuis la base.
  */
-export function SearchFilters({ params, onChange, onSearch }: SearchFiltersProps) {
+export function SearchFilters({ params, onChange, onSearch, onLiveQuery }: SearchFiltersProps) {
   const { data } = useSearchFilters();
   const cities = data?.cities ?? [];
   const cuisines = (data?.cuisines ?? []).filter((c) => isUsefulCuisine(c.name));
   const update = (patch: Partial<SearchParams>) => onChange({ ...params, ...patch });
+  const [q, setQ] = useState(params.q ?? '');
+  const debouncedQ = useDebouncedValue(q, 280);
+
+  useEffect(() => {
+    setQ(params.q ?? '');
+  }, [params.q]);
+
+  useEffect(() => {
+    if (!onLiveQuery) return;
+    const next = debouncedQ.trim();
+    if (next === (params.q ?? '').trim()) return;
+    onLiveQuery(next);
+  }, [debouncedQ, onLiveQuery, params.q]);
 
   return (
     <div className="space-y-4 rounded-2xl bg-white p-4 shadow-card">
@@ -28,8 +44,12 @@ export function SearchFilters({ params, onChange, onSearch }: SearchFiltersProps
           <Input
             label="Rechercher"
             placeholder="Nom, cuisine, quartier…"
-            value={params.q ?? ''}
-            onChange={(e) => update({ q: e.target.value || undefined })}
+            value={q}
+            onChange={(e) => {
+              const next = e.target.value;
+              setQ(next);
+              update({ q: next || undefined });
+            }}
             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
           />
         </div>

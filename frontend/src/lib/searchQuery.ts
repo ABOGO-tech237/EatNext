@@ -11,6 +11,7 @@ export function searchParamsToQuery(params: SearchParams): URLSearchParams {
   if (params.lat != null) sp.set('lat', String(params.lat));
   if (params.lng != null) sp.set('lng', String(params.lng));
   if (params.sortBy && params.sortBy !== 'rating') sp.set('sortBy', params.sortBy);
+  if (params.openNow) sp.set('openNow', '1');
   return sp;
 }
 
@@ -31,8 +32,14 @@ export function queryToSearchParams(urlParams: URLSearchParams): SearchParams {
     lat: lat ? Number(lat) : undefined,
     lng: lng ? Number(lng) : undefined,
     radius: near ? 5000 : undefined,
-    sortBy: sortBy === 'name' || sortBy === 'distance' || sortBy === 'rating' ? sortBy : near ? 'distance' : 'rating',
+    sortBy:
+      sortBy === 'name' || sortBy === 'distance' || sortBy === 'rating' || sortBy === 'createdAt'
+        ? sortBy
+        : near
+          ? 'distance'
+          : 'rating',
     order: 'desc',
     limit: 24,
+    openNow: urlParams.get('openNow') === '1' || urlParams.get('openNow') === 'true',
   };
 }

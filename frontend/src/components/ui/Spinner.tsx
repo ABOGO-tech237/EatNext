@@ -27,13 +27,49 @@ export function RestaurantGridSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="overflow-hidden rounded-2xl bg-white shadow-card">
-          <div className="shimmer aspect-[4/3]" />
-          <div className="space-y-3 p-4">
-            <div className="shimmer h-5 w-3/4 rounded" />
-            <div className="shimmer h-4 w-1/2 rounded" />
-          </div>
+        <RestaurantCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+export function RestaurantCardSkeleton({ variant = 'grid' }: { variant?: 'grid' | 'rail' | 'list' }) {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+      <div
+        className={cn(
+          'shimmer',
+          variant === 'rail' && 'aspect-[4/5]',
+          variant === 'list' && 'aspect-[16/10] sm:h-44',
+          variant === 'grid' && 'aspect-[4/3]',
+        )}
+      />
+      <div className="space-y-3 p-4">
+        <div className="shimmer h-5 w-3/4 rounded" />
+        <div className="shimmer h-4 w-1/2 rounded" />
+        <div className="shimmer h-4 w-1/3 rounded" />
+      </div>
+    </div>
+  );
+}
+
+export function RestaurantRailSkeleton() {
+  return (
+    <div className="flex gap-4 overflow-hidden px-4 sm:px-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="w-[min(80vw,17.5rem)] shrink-0">
+          <RestaurantCardSkeleton variant="rail" />
         </div>
+      ))}
+    </div>
+  );
+}
+
+export function RestaurantListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <RestaurantCardSkeleton key={i} variant="list" />
       ))}
     </div>
   );

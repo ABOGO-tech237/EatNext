@@ -11,7 +11,7 @@ export function MainLayout() {
   return (
     <div className="flex min-h-screen flex-col bg-ink-50">
       <Header />
-      <main className="flex-1">
+      <main className="page-enter flex-1">
         <Outlet />
       </main>
       <Footer />

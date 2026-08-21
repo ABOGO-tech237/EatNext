@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-label="EatNext by Crafti Studio">
+  <g transform="translate(-95 -185) scale(0.42)">
+    <line x1="435.6" y1="817.46" x2="373.42" y2="907.21" stroke="#08341F" stroke-width="152.8" stroke-linecap="round"/>
+    <path fill="#D41414" fill-rule="evenodd" d="M392.226 725.946C417.253 797.81 485.66 849.294 565.985 849.294C662.755 849.294 742.127 774.57 749.396 679.587C739.743 768.016 629.267 832.013 549.896 791.851C543.46 788.633 537.621 785.892 534.403 779.099C529.278 768.492 527.491 748.709 540.123 728.688C570.156 681.136 641.304 661.711 692.907 659.327C709.592 658.493 728.422 658.731 749.992 660.161C747.132 560.888 665.854 481.278 565.985 481.278C464.447 481.278 381.977 563.629 381.977 665.286C382.096 686.499 385.671 706.878 392.226 725.946ZM447.285 652.057C454.317 590.682 506.516 542.892 569.798 542.892C612.344 542.892 649.885 564.463 672.051 597.236C615.8 587.345 516.05 594.734 447.285 652.057Z"/>
+  </g>
+  <text x="230" y="118" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#08341F">Eat</text>
+  <text x="230" y="184" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#08341F">Next</text>
+  <text x="230" y="222" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#08341F">BY CRAFTI </text>
+  <text x="338" y="222" font-family="Helvetica, Arial, sans-serif" font-size="16" fill="#D41414">STUDIO</text>
+</svg>

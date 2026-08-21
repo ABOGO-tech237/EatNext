@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
-/** Variantes visuelles du bouton — palette EatNext (rouge chaleureux type Yelp). */
+/** Variantes visuelles du bouton — vert forêt Crafti, rouge en accent. */
 type Variant = 'primary' | 'secondary' | 'ghost' | 'outline';
 type Size = 'sm' | 'md' | 'lg';
 
@@ -13,10 +13,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-brand-600 text-white hover:bg-brand-700 shadow-sm active:scale-[0.98] disabled:bg-brand-300',
+    'bg-brand-800 text-white hover:bg-brand-900 shadow-sm active:scale-[0.98] disabled:bg-brand-300',
   secondary: 'bg-ink-100 text-ink-800 hover:bg-ink-200',
   ghost: 'text-ink-700 hover:bg-ink-100',
-  outline: 'border border-ink-200 text-ink-800 hover:border-brand-400 hover:text-brand-700',
+  outline: 'border border-ink-200 text-ink-800 hover:border-brand-600 hover:text-brand-800',
 };
 
 const sizes: Record<Size, string> = {

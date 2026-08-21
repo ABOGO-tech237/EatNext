@@ -73,7 +73,30 @@ export function firstSentence(text?: string | null): string | null {
 export type OpeningStatus = { open: boolean; label: string };
 
 const OSM_DAY_ORDER = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] as const;
-const JS_TO_OSM = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
+const WEEKDAY_TO_OSM: Record<string, (typeof OSM_DAY_ORDER)[number]> = {
+  Sun: 'Su',
+  Mon: 'Mo',
+  Tue: 'Tu',
+  Wed: 'We',
+  Thu: 'Th',
+  Fri: 'Fr',
+  Sat: 'Sa',
+};
+
+/** Heure locale Douala / Yaoundé — pas l’horloge UTC du serveur. */
+function cameroonClock(now = new Date()): { day: (typeof OSM_DAY_ORDER)[number]; mins: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Douala',
+    weekday: 'short',
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const weekday = parts.find((p) => p.type === 'weekday')?.value ?? 'Mon';
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
+  return { day: WEEKDAY_TO_OSM[weekday] ?? 'Mo', mins: hour * 60 + minute };
+}
 
 /**
  * Parseur conservateur : `Mo-Su 11:00-23:00` (pas de plage nuit, pas de multi-règles).
@@ -96,10 +119,8 @@ export function openingStatus(hours?: string | null): OpeningStatus | null {
   if (startIdx === -1 || endIdx === -1 || startIdx > endIdx) return null;
 
   const days = new Set(OSM_DAY_ORDER.slice(startIdx, endIdx + 1));
-  const now = new Date();
-  const today = JS_TO_OSM[now.getDay()];
-  const mins = now.getHours() * 60 + now.getMinutes();
-  const open = days.has(today) && mins >= startMin && mins < endMin;
+  const { day, mins } = cameroonClock();
+  const open = days.has(day) && mins >= startMin && mins < endMin;
   return { open, label: open ? 'Ouvert' : 'Fermé' };
 }
 

@@ -7,11 +7,13 @@ import { Rating } from '../ui/Rating';
 import { PriceRange } from '../ui/PriceRange';
 import { PhotoCover } from '../ui/PhotoCover';
 import { isUsefulCuisine } from '../../lib/filters';
+import { distinctiveTag, isRecentlyListed, restaurantAmenities } from '../../lib/amenities';
 import {
   cn,
   firstSentence,
   formatDistance,
   neighborhoodFromAddress,
+  openingStatus,
 } from '../../lib/utils';
 import { DURATION, easeOut, fadeUp, staggerDelay } from '../../lib/motion';
 import type { Restaurant } from '../../types';
@@ -24,8 +26,18 @@ interface RestaurantCardProps {
   compact?: boolean;
   selected?: boolean;
   featured?: boolean;
+  /** `rail` = carrousel grandes photos ; `list` = photo dominante verticale. */
+  variant?: 'grid' | 'rail' | 'list';
   /** Index de grille — stagger 40ms, cap 6. */
   index?: number;
+  /** Accueil : n’afficher « Fermé » que sur la fiche / la recherche. */
+  hideClosedBadge?: boolean;
+}
+
+function restaurantHref(restaurant: Restaurant) {
+  return restaurant.id.startsWith('osm-') && restaurant.osmType && restaurant.osmId
+    ? `/osm/${restaurant.osmType}/${restaurant.osmId}`
+    : `/restaurants/${restaurant.id}`;
 }
 
 function PhotoCarousel({
@@ -73,10 +85,7 @@ function PhotoCarousel({
             {photos.map((_, idx) => (
               <span
                 key={idx}
-                className={cn(
-                  'h-1.5 w-1.5 rounded-full',
-                  idx === i ? 'bg-white' : 'bg-white/50',
-                )}
+                className={cn('h-1.5 w-1.5 rounded-full', idx === i ? 'bg-white' : 'bg-white/50')}
               />
             ))}
           </div>
@@ -87,7 +96,8 @@ function PhotoCarousel({
 }
 
 /**
- * Carte restaurant — carrousel, quartier, extrait, hover CSS.
+ * Carte restaurant — grille, rail, liste.
+ * Signaux : note, avis, prix FCFA, tag distinctif (OSM ou cuisine).
  */
 export function RestaurantCard({
   restaurant,
@@ -97,35 +107,52 @@ export function RestaurantCard({
   compact,
   selected,
   featured,
+  variant = 'grid',
   index = 0,
+  hideClosedBadge = false,
 }: RestaurantCardProps) {
   const reduce = useReducedMotion();
   const photos = restaurant.photos.filter(Boolean);
   const distance = formatDistance(restaurant.distance);
   const neighborhood = neighborhoodFromAddress(restaurant.address);
   const excerpt = firstSentence(restaurant.description);
-  const href =
-    restaurant.id.startsWith('osm-') && restaurant.osmType && restaurant.osmId
-      ? `/osm/${restaurant.osmType}/${restaurant.osmId}`
-      : `/restaurants/${restaurant.id}`;
+  const href = restaurantHref(restaurant);
+  const amenities = restaurantAmenities(restaurant);
+  const tag = distinctiveTag(restaurant);
+  const hours = openingStatus(restaurant.openingHours);
+  const isNew = isRecentlyListed(restaurant);
+  const isRail = variant === 'rail';
+  const isList = variant === 'list';
 
   return (
     <motion.article
       data-restaurant-id={restaurant.id}
       initial={reduce ? false : fadeUp.initial}
       animate={fadeUp.animate}
+      whileHover={reduce ? undefined : { y: -4 }}
+      whileTap={reduce ? undefined : { scale: 0.985 }}
       transition={{ duration: DURATION.enter, delay: reduce ? 0 : staggerDelay(index), ease: easeOut }}
       className={cn(
-        'group relative overflow-hidden rounded-2xl bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover',
+        'group relative overflow-hidden rounded-2xl bg-white shadow-card transition-shadow duration-300 hover:shadow-card-hover',
         selected && 'ring-2 ring-brand-500',
-        featured && 'sm:grid sm:grid-cols-[minmax(0,1.2fr)_1fr]',
+        isRail && 'h-full snap-start',
       )}
     >
-      <Link to={href} className="block">
+      <Link
+        to={href}
+        className={cn(
+          'block',
+          featured && 'sm:grid sm:grid-cols-[minmax(0,1.2fr)_1fr]',
+          isList && 'sm:grid sm:grid-cols-[minmax(0,14rem)_1fr]',
+        )}
+      >
         <div
           className={cn(
             'relative overflow-hidden bg-ink-800',
-            featured ? 'aspect-[16/10] sm:aspect-auto sm:min-h-[16rem] sm:h-full' : 'aspect-[4/3]',
+            featured && 'aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[16rem]',
+            isRail && 'aspect-[4/5]',
+            isList && 'aspect-[16/10] sm:aspect-auto sm:min-h-[11rem]',
+            !featured && !isRail && !isList && 'aspect-[4/3]',
           )}
         >
           <div className="h-full w-full transition-transform duration-500 group-hover:scale-[1.04]">
@@ -145,28 +172,53 @@ export function RestaurantCard({
               />
             )}
           </div>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-          {isUsefulCuisine(restaurant.cuisineType) && (
-            <Badge variant="brand" className="absolute left-3 top-3 capitalize">
-              {restaurant.cuisineType}
-            </Badge>
-          )}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+          <div className="absolute left-3 top-3 z-[1] flex flex-wrap gap-1">
+            {isNew && (
+              <Badge variant="gold" className="normal-case">
+                Nouveau
+              </Badge>
+            )}
+            {hours && (!hideClosedBadge || hours.open) && (
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                  hours.open ? 'bg-emerald-600 text-white' : 'bg-ink-800/80 text-white',
+                )}
+              >
+                {hours.label}
+              </span>
+            )}
+            {isUsefulCuisine(restaurant.cuisineType) && !tag && (
+              <Badge variant="brand" className="capitalize">
+                {restaurant.cuisineType}
+              </Badge>
+            )}
+          </div>
         </div>
 
-        <div className={cn('p-4', compact && 'p-3', featured && 'sm:flex sm:flex-col sm:justify-center sm:p-6')}>
+        <div
+          className={cn(
+            'p-4',
+            compact && 'p-3',
+            featured && 'sm:flex sm:flex-col sm:justify-center sm:p-6',
+            isRail && 'p-3',
+          )}
+        >
           <div className="flex items-start justify-between gap-2">
             <h3
               className={cn(
                 'font-semibold text-ink-900 line-clamp-1 group-hover:text-brand-700',
                 featured && 'text-2xl',
+                isRail && 'text-base',
               )}
             >
               {restaurant.name}
             </h3>
-            <PriceRange range={restaurant.priceRange} />
+            <PriceRange range={restaurant.priceRange} className="shrink-0" />
           </div>
 
-          <div className="mt-2 flex items-center gap-1 text-sm text-ink-500">
+          <div className="mt-1.5 flex items-center gap-1 text-sm text-ink-500">
             <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span className="line-clamp-1">
               {neighborhood ? `${neighborhood} · ` : ''}
@@ -175,13 +227,33 @@ export function RestaurantCard({
             </span>
           </div>
 
-          {restaurant.reviewCount > 0 && (
-            <div className="mt-2.5">
+          <div className="mt-2">
+            {restaurant.reviewCount > 0 ? (
               <Rating value={restaurant.avgRating} count={restaurant.reviewCount} size="sm" />
+            ) : (
+              <p className="text-xs text-ink-400">Pas encore d’avis</p>
+            )}
+          </div>
+
+          {(tag || amenities.length > 0) && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {tag && (
+                <Badge variant="brand" className="capitalize normal-case">
+                  {tag}
+                </Badge>
+              )}
+              {amenities
+                .filter((a) => a !== tag)
+                .slice(0, 2)
+                .map((a) => (
+                  <Badge key={a} variant="muted">
+                    {a}
+                  </Badge>
+                ))}
             </div>
           )}
 
-          {!compact && excerpt && (
+          {!compact && !isRail && excerpt && (
             <p className={cn('mt-2 text-sm text-ink-500', featured ? 'line-clamp-3' : 'line-clamp-2')}>
               {excerpt}
             </p>
@@ -199,16 +271,14 @@ export function RestaurantCard({
           disabled={favoriteLoading}
           className={cn(
             'absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full',
-            'bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:bg-white',
-            isFavorite ? 'text-brand-600' : 'text-ink-400 hover:text-brand-500',
+            'bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:bg-white active:scale-90',
+            isFavorite ? 'text-accent-600' : 'text-ink-400 hover:text-accent-500',
           )}
           aria-label={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
         >
           <Heart
-            className={cn(
-              'h-5 w-5 heart-pop',
-              isFavorite && 'fill-current',
-            )}
+            key={isFavorite ? 'on' : 'off'}
+            className={cn('h-5 w-5 heart-pop', isFavorite && 'fill-current')}
           />
         </button>
       )}

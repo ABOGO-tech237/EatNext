@@ -11,6 +11,7 @@ import { useRestaurantSearch, useSearchFilters } from '../hooks/useRestaurants';
 import { useIsFavorite, useToggleFavorite } from '../hooks/useFavorites';
 import { useIsAuthenticated } from '../stores/authStore';
 import type { Restaurant, SearchParams } from '../types';
+import { isOpenNow } from '../lib/amenities';
 import { CAMEROON_CITIES, cn } from '../lib/utils';
 import { queryToSearchParams, searchParamsToQuery } from '../lib/searchQuery';
 
@@ -41,7 +42,7 @@ export default function SearchPage() {
   };
 
   const { data, isLoading, isFetching } = useRestaurantSearch(params);
-  const restaurants = data?.items ?? [];
+  const restaurants = (data?.items ?? []).filter((r) => !params.openNow || isOpenNow(r));
 
   useEffect(() => {
     const bits = [params.q, params.city, params.cuisine].filter(Boolean);
@@ -143,6 +144,7 @@ export default function SearchPage() {
                 params={draft}
                 onChange={setDraft}
                 onSearch={() => apply(draft)}
+                onLiveQuery={(q) => apply({ ...params, q: q || undefined })}
               />
             </div>
           )}
@@ -229,6 +231,7 @@ export default function SearchPage() {
                 apply(draft);
                 setFiltersOpen(false);
               }}
+              onLiveQuery={(q) => apply({ ...params, q: q || undefined })}
             />
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Globe, Heart, MapPin, Navigation, Phone, Store, X } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Clock, Globe, Heart, MapPin, Navigation, Phone, Store, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   useRestaurant,
@@ -21,7 +21,7 @@ import { Rating, RatingInput } from '../components/ui/Rating';
 import { PriceRange } from '../components/ui/PriceRange';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { PhotoCover } from '../components/ui/PhotoCover';
+import { PhotoGallery } from '../components/restaurant/PhotoGallery';
 import {
   cn,
   formatPrice,
@@ -30,9 +30,10 @@ import {
   openingStatus,
 } from '../lib/utils';
 import { FadeIn } from '../components/ui/FadeIn';
+import { isUsefulCuisine } from '../lib/filters';
 
 /**
- * Fiche diner : mosaïque, ouvert, actions sticky, menu cartes, nearby.
+ * Fiche diner : galerie swipe, actions Réserver / Itinéraire / Appeler, similaires.
  */
 export default function RestaurantDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +48,7 @@ export default function RestaurantDetailPage() {
   const toggleFavorite = useToggleFavorite();
   const createReview = useCreateReview(id ?? '');
   const claim = useClaimRestaurant();
-  const { data: nearby = [] } = useNearbyRestaurants(restaurant?.lat, restaurant?.lng, 4000, 4);
+  const { data: nearby = [] } = useNearbyRestaurants(restaurant?.lat, restaurant?.lng, 4000, 8);
 
   const [rating, setRating] = useState(5);
   const [content, setContent] = useState('');
@@ -81,7 +82,7 @@ export default function RestaurantDetailPage() {
   const isMine = user && restaurant.ownerId === user.id;
   const hours = openingStatus(restaurant.openingHours);
   const neighborhood = neighborhoodFromAddress(restaurant.address);
-  const nearbyOthers = nearby.filter((r) => r.id !== restaurant.id).slice(0, 3);
+  const nearbyOthers = nearby.filter((r) => r.id !== restaurant.id).slice(0, 6);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,11 +111,8 @@ export default function RestaurantDetailPage() {
     }
   };
 
-  const mosaicMain = photos[0];
-  const mosaicSide = photos.length > 1 ? photos.slice(1, 3) : [undefined, undefined];
-
   return (
-    <div className="bg-ink-50 pb-24 lg:pb-20">
+    <div className="page-enter bg-ink-50 pb-24 lg:pb-20">
       <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
         <Link
           to="/search"
@@ -124,60 +122,47 @@ export default function RestaurantDetailPage() {
           Retour
         </Link>
 
-        <div className="grid gap-2 overflow-hidden rounded-3xl sm:grid-cols-3 sm:grid-rows-2 sm:h-[22rem] lg:h-[28rem]">
-          <button
-            type="button"
-            className="relative min-h-[14rem] overflow-hidden bg-ink-900 sm:col-span-2 sm:row-span-2 sm:min-h-0"
-            onClick={() => mosaicMain && setLightbox(mosaicMain)}
-          >
-            <PhotoCover
-              src={mosaicMain}
-              alt={restaurant.name}
-              seed={restaurant.id}
-              cuisine={restaurant.cuisineType}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-5 text-left text-white sm:p-8">
-              <div className="flex flex-wrap items-center gap-2">
-                {restaurant.ownerId && <SourceBadge restaurant={restaurant} />}
-                <Badge variant="muted" className="capitalize normal-case tracking-normal">
-                  {restaurant.cuisineType}
-                </Badge>
-                {hours && (
-                  <span
-                    className={cn(
-                      'rounded-full px-2 py-0.5 text-[11px] font-semibold',
-                      hours.open ? 'bg-emerald-500 text-white' : 'bg-ink-800 text-white',
-                    )}
-                  >
-                    {hours.label}
-                  </span>
+        <PhotoGallery
+          photos={photos}
+          name={restaurant.name}
+          seed={restaurant.id}
+          cuisine={restaurant.cuisineType}
+          onOpen={(src) => setLightbox(src)}
+        />
+
+        <FadeIn className="mt-5">
+          <div className="flex flex-wrap items-center gap-2">
+            {restaurant.ownerId && <SourceBadge restaurant={restaurant} />}
+            {isUsefulCuisine(restaurant.cuisineType) && (
+              <Badge variant="muted" className="capitalize normal-case tracking-normal">
+                {restaurant.cuisineType}
+              </Badge>
+            )}
+            {hours && (
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                  hours.open ? 'bg-emerald-600 text-white' : 'bg-ink-700 text-white',
                 )}
-              </div>
-              <FadeIn>
-                <h1 className="mt-3 text-3xl font-bold sm:text-5xl">{restaurant.name}</h1>
-              </FadeIn>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <Rating
-                  value={restaurant.avgRating}
-                  count={restaurant.reviewCount}
-                  className="[&_span]:text-white"
-                />
-                <PriceRange range={restaurant.priceRange} className="text-amber-300" />
-              </div>
-            </div>
-          </button>
-          {mosaicSide.map((src, i) => (
-            <button
-              key={src ?? `cover-${i}`}
-              type="button"
-              className="relative hidden overflow-hidden bg-ink-800 sm:block"
-              onClick={() => src && setLightbox(src)}
-            >
-              <PhotoCover src={src} alt="" seed={`${restaurant.id}-${i}`} cuisine={restaurant.cuisineType} />
-            </button>
-          ))}
-        </div>
+              >
+                {hours.label}
+              </span>
+            )}
+          </div>
+          <h1 className="mt-2 text-3xl font-bold text-ink-900 sm:text-4xl">{restaurant.name}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-ink-600">
+            {restaurant.reviewCount > 0 ? (
+              <Rating value={restaurant.avgRating} count={restaurant.reviewCount} />
+            ) : (
+              <span className="text-ink-400">Pas encore d’avis</span>
+            )}
+            <PriceRange range={restaurant.priceRange} />
+            <span>
+              {neighborhood ? `${neighborhood} · ` : ''}
+              {restaurant.city}
+            </span>
+          </div>
+        </FadeIn>
       </div>
 
       {lightbox && (
@@ -200,8 +185,21 @@ export default function RestaurantDetailPage() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mt-6 hidden flex-wrap gap-3 sm:flex">
+          {restaurant.phone ? (
+            <a href={`tel:${restaurant.phone}`}>
+              <Button>
+                <CalendarClock className="h-4 w-4" />
+                Réserver une table
+              </Button>
+            </a>
+          ) : (
+            <Button disabled variant="outline" title="Numéro non renseigné sur cette fiche">
+              <CalendarClock className="h-4 w-4" />
+              Réserver une table
+            </Button>
+          )}
           <a href={mapsDirectionsUrl(restaurant.lat, restaurant.lng)} target="_blank" rel="noreferrer">
-            <Button>
+            <Button variant="outline">
               <Navigation className="h-4 w-4" />
               Itinéraire
             </Button>
@@ -260,16 +258,23 @@ export default function RestaurantDetailPage() {
                   {menu.map((item) => (
                     <li
                       key={`${item.name}-${item.price}`}
-                      className="rounded-2xl border border-ink-100 bg-ink-50/60 p-4"
+                      className="flex gap-3 rounded-2xl border border-ink-100 bg-ink-50/60 p-3"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="font-medium text-ink-900">{item.name}</p>
-                        <p className="shrink-0 font-semibold text-ink-900">{formatPrice(item.price)}</p>
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-ink-100 text-center text-[10px] font-medium leading-tight text-ink-400">
+                        Photo plat
+                        <br />
+                        non fournie
                       </div>
-                      {item.description && (
-                        <p className="mt-1 text-sm text-ink-500">{item.description}</p>
-                      )}
-                      {item.category && <p className="mt-2 text-xs text-ink-400">{item.category}</p>}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="font-medium text-ink-900">{item.name}</p>
+                          <p className="shrink-0 font-semibold text-ink-900">{formatPrice(item.price)}</p>
+                        </div>
+                        {item.description && (
+                          <p className="mt-1 text-sm text-ink-500">{item.description}</p>
+                        )}
+                        {item.category && <p className="mt-2 text-xs text-ink-400">{item.category}</p>}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -278,8 +283,9 @@ export default function RestaurantDetailPage() {
 
             {nearbyOthers.length > 0 && (
               <section>
-                <h2 className="text-2xl font-bold text-ink-900">Dans le coin</h2>
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                <h2 className="text-2xl font-bold text-ink-900">Restaurants similaires</h2>
+                <p className="mt-1 text-sm text-ink-500">Autres tables à proximité, d’après la position de cette fiche.</p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {nearbyOthers.map((r, i) => (
                     <RestaurantCard key={r.id} restaurant={r} compact index={i} />
                   ))}
@@ -368,13 +374,17 @@ export default function RestaurantDetailPage() {
             </section>
 
             {canClaim && (
-              <section className="rounded-2xl bg-brand-600 p-6 text-white">
-                <Store className="h-5 w-5 text-white" />
+              <section className="rounded-2xl bg-brand-800 p-6 text-white">
+                <Store className="h-5 w-5 text-mint-500" />
                 <p className="mt-3 text-xl font-semibold">C'est votre établissement ?</p>
-                <p className="mt-2 text-sm text-brand-100">
+                <p className="mt-2 text-sm text-white/75">
                   Revendiquez cette fiche plutôt que d’en créer une autre.
                 </p>
-                <Button className="mt-4 w-full" onClick={handleClaim} loading={claim.isPending}>
+                <Button
+                  className="mt-4 w-full bg-white text-brand-800 hover:bg-mint-500"
+                  onClick={handleClaim}
+                  loading={claim.isPending}
+                >
                   Revendiquer cette fiche
                 </Button>
               </section>
@@ -392,15 +402,21 @@ export default function RestaurantDetailPage() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-100 bg-white/95 px-4 py-3 backdrop-blur-md sm:hidden">
         <div className="flex gap-2">
-          <a
-            className="flex-1"
-            href={mapsDirectionsUrl(restaurant.lat, restaurant.lng)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Button className="w-full">
+          {restaurant.phone ? (
+            <a className="flex-1" href={`tel:${restaurant.phone}`}>
+              <Button className="w-full">
+                <CalendarClock className="h-4 w-4" />
+                Réserver
+              </Button>
+            </a>
+          ) : (
+            <Button className="flex-1" variant="outline" disabled>
+              Réserver
+            </Button>
+          )}
+          <a href={mapsDirectionsUrl(restaurant.lat, restaurant.lng)} target="_blank" rel="noreferrer">
+            <Button variant="outline">
               <Navigation className="h-4 w-4" />
-              Itinéraire
             </Button>
           </a>
           {restaurant.phone && (

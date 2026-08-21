@@ -16,11 +16,12 @@ export const restaurantKeys = {
   menu: (id: string) => [...restaurantKeys.all, 'menu', id] as const,
 };
 
-export function useRestaurantSearch(params: SearchParams) {
+export function useRestaurantSearch(params: SearchParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: restaurantKeys.search(params),
     queryFn: () => restaurantApi.searchRestaurants(params),
     staleTime: 60_000,
+    enabled: options?.enabled ?? true,
   });
 }
 

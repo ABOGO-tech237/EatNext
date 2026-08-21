@@ -25,7 +25,7 @@ const STATS_CACHE_KEY = 'restaurants:stats:v2';
 const FILTERS_CACHE_KEY = 'restaurants:filters:v1';
 const FILTERS_TTL = 300;
 
-/** Champs liste : pas de `osmTags` (JSON volumineux) pour garder la recherche rapide. */
+/** Champs liste : `osmTags` pour badges Terrasse / Livraison, `createdAt` pour « Nouveaux ». */
 const LIST_SELECT = {
   id: true,
   ownerId: true,
@@ -47,6 +47,8 @@ const LIST_SELECT = {
   openingHours: true,
   phone: true,
   website: true,
+  createdAt: true,
+  osmTags: true,
 } satisfies Prisma.RestaurantSelect;
 
 /** Requête homepage fréquente : pas de filtres, tri par note décroissante. */
@@ -72,6 +74,9 @@ function buildOrderBy(
   if (params.sortBy === 'name') {
     return { name: params.order ?? 'asc' };
   }
+  if (params.sortBy === 'createdAt') {
+    return { createdAt: params.order ?? 'desc' };
+  }
   return { avgRating: params.order ?? 'desc' };
 }
 
@@ -94,7 +99,7 @@ export interface RestaurantSearchParams {
   priceRange?: number;
   page?: number;
   limit?: number;
-  sortBy?: 'rating' | 'distance' | 'name';
+  sortBy?: 'rating' | 'distance' | 'name' | 'createdAt';
   order?: 'asc' | 'desc';
 }
 

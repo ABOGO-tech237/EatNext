@@ -1,6 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { DURATION, easeOut } from '../../lib/motion';
 import { HERO_COVER } from '../../lib/covers';
+import { pickHomeCities } from '../../lib/filters';
 import { useSearchFilters } from '../../hooks/useRestaurants';
 import { HomeSearchBar } from './HomeSearchBar';
 import { HomeStats } from './HomeStats';
@@ -11,7 +12,7 @@ import { HomeStats } from './HomeStats';
 export function HomeHero() {
   const reduce = useReducedMotion();
   const { data } = useSearchFilters();
-  const cities = data?.cities.map((c) => c.name).slice(0, 4) ?? [];
+  const cities = pickHomeCities(data?.cities ?? []).map((c) => c.name);
 
   const enter = (delay: number, y = 12) =>
     reduce
@@ -29,20 +30,22 @@ export function HomeHero() {
         alt=""
         className="hero-photo pointer-events-none absolute inset-0 h-full w-full object-cover"
         aria-hidden
+        fetchPriority="high"
+        decoding="async"
       />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-900/40 via-brand-800/55 to-ink-900/80" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand-900/50 via-brand-900/62 to-brand-900/78" />
 
       <div className="relative mx-auto flex min-h-[62vh] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:px-6 sm:py-16">
         {cities.length > 0 && (
           <motion.p
-            className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-100"
+            className="text-xs font-semibold uppercase tracking-[0.2em] text-mint-500"
             {...enter(0, 8)}
           >
             {cities.join(' · ')}
           </motion.p>
         )}
 
-        <h1 className="mt-3 max-w-xl text-4xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="mt-3 max-w-xl text-[2.5rem] font-bold leading-[1.1] tracking-tight drop-shadow-[0_2px_12px_rgba(5,36,22,0.55)] sm:text-5xl">
           <motion.span className="block" {...enter(0.08)}>
             Trouvez votre
           </motion.span>
@@ -54,6 +57,12 @@ export function HomeHero() {
             </span>
           </motion.span>
         </h1>
+        <motion.p
+          className="mt-4 max-w-md text-sm text-white/85 sm:text-base"
+          {...enter(0.22, 8)}
+        >
+          Les tables de Douala et Yaoundé, prix en FCFA.
+        </motion.p>
 
         <div className="mt-8 w-full max-w-3xl">
           <HomeSearchBar delay={0.28} />
